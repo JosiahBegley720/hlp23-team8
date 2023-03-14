@@ -37,7 +37,26 @@ open Operators
 /// The Wires going through the channel must be returned as an updated Wires map in model.
 // HLP23: need to update XML doc comments when this function is fully worked out.
 
+let wireInChannelPredicate channel (connId,wire) :bool = 
+    //7 seg wires allowed ONLY
+    //9 seg wires allowed in vertical channel ONLY
+    if not (List.length wire.Segments = 7)// && channelOrientation = Vertical 
+            //|| List.length wire.Segments = 9 && channelOrientation = Horizontal ) then 
+        then false
+    else
+        match wireIntersectsBoundingBox wire channel with
+        | None -> false
+        | Some x -> true
 
+let wireOrientationPredicate (cid,wire) = 
+    let thirdSegOrientation = 
+        getAbsoluteSegmentPos wire 3
+        |> (fun (st,en) -> getSegmentOrientation st en)
+    match thirdSegOrientation with
+    | Vertical -> true
+    | Horizontal -> false
+
+///Top level function for auto-spacing wires in a bounding box
 let smartChannelRoute 
         (channelOrientation: Orientation) 
         (channel: BoundingBox) 
@@ -45,61 +64,93 @@ let smartChannelRoute
             :Model =
     let tl = channel.TopLeft
     printfn $"SmartChannel: channel {channelOrientation}:(%.1f{tl.X},%.1f{tl.Y}) W=%.1f{channel.W} H=%.1f{channel.H}"
-  
-
-    let wireInChannelPredicate (connId,wire) :bool = 
-        //7 seg wires allowed in horizontal channel ONLY
-        //9 seg wires allowed in vertical channel ONLY
-        if not (List.length wire.Segments = 7 && channelOrientation = Vertical 
-                || List.length wire.Segments = 9 && channelOrientation = Horizontal ) then 
-            false
-        else
-            match wireIntersectsBoundingBox wire channel with
-            | None -> false
-            | Some x -> true
 
     let allWiresList = 
         model.Wires
         |> Map.toList
-        |> List.partition wireInChannelPredicate 
+        |> List.partition (wireInChannelPredicate channel)
 
     //List of wires in channel sorted by X coord of starting pos
     let channelWiresList = 
         fst allWiresList
-        |> List.sortBy (fun (x,y) -> y.StartPos.X)
+        |> List.sortBy (fun (x,y) -> y.StartPos.Y)
+    List.map (fun (x,y) -> printf $"{y.Segments.Length}, {getAbsoluteSegmentPos y 3}") channelWiresList |> ignore
 
+    //Further segment channelWiresList into vertical and horizontal wires
+    let orientedWiresList = 
+        channelWiresList
+        |> List.partition wireOrientationPredicate
+    let shiftWireList orien
+    
     //Calculates current deviation of each wire's mid segment from desired position, then calls moveSegment to correct it
-    let shiftedWiresList =
+    let xShiftedWiresList =
 
-        match channelOrientation with 
-        | Vertical -> 
-            //Setup desired wire positions
-            let wireSpacing = 0.7*channel.W/(float channelWiresList.Length)
-            let spacedWirePos = 
-                [1..channelWiresList.Length]
-                |> List.map (fun i -> tl.X  + float(i) * wireSpacing)
+        //Setup desired wire positions
+        let wireSpacing = 0.7*channel.W/(float channelWiresList.Length)
+        let spacedWirePos = 
+            [1..channelWiresList.Length]
+            |> List.map (fun i -> tl.X  + float(i) * wireSpacing)
 
 
-            channelWiresList
-            |> List.map (fun (cid,wire) -> getAbsoluteSegmentPos wire 3)
-            |> List.map (fun x -> (fst x).X)
-            |> List.map2 (fun autoPosX absPos  -> autoPosX - absPos) spacedWirePos //list of adjustments
-            |> List.map2 (fun (cid,wire) adj -> (cid, moveSegment model wire.Segments[3] adj)) channelWiresList
+        fst orientedWiresList
+        |> List.map (fun (cid,wire) -> getAbsoluteSegmentPos wire 3)
+        |> List.map (fun x -> (fst x).X)
+        |> List.map2 (fun autoPosX absPos  -> autoPosX - absPos) spacedWirePos //list of adjustments
+        |> List.map2 (fun (cid,wire) adj -> (cid, moveSegment model wire.Segments[3] adj)) channelWiresList
 
-        | Horizontal -> 
-            let wireSpacing = 0.8*channel.H/(float channelWiresList.Length)
-            let spacedWirePos = 
-                [1..channelWiresList.Length]
-                |> List.map (fun i -> tl.Y  + float(i) * wireSpacing)
+    //let yShiftedWiresList = 
+    //if a wire has a start point at at a certain y, then you want it to dip b4 a wire has an end point there
+    //or if a wire has a seg2 at a certain y+- dy, then seg4 at that point must start after
+    //switch positions of wires , keep making passes
+    let correctedShiftedWiresList = 
+        xShiftedWiresList
+        //test if segments 2 or 4 overlap
+        let overlapRange = 0.05 * channel.H
 
-            channelWiresList
-            |> List.map (fun (cid,wire) -> getAbsoluteSegmentPos wire 4)
-            |> List.map (fun x -> (fst x).Y)
-            |> List.map2 (fun autoPosY absPos  -> autoPosY - absPos) spacedWirePos //list of adjustments
-            |> List.map2 (fun (cid,wire) adj -> (cid, moveSegment model wire.Segments[4] adj)) channelWiresList
+        let compareOverlap (w1, w2) = 
+            //check if they overlap
+            //let w1 = 
+            let w12 = fst (getAbsoluteSegmentPos w1 2)
+            let w14 = fst (getAbsoluteSegmentPos w1 4)
+            let w22 = fst (getAbsoluteSegmentPos w2 2)
+            let w24 = fst (getAbsoluteSegmentPos w2 4)
+            if ((w24.Y < w12.Y + overlapRange  && w12.Y - overlapRange < w24.Y)
+                || (w14.Y < w12.Y + overlapRange)) then
+                true
+            else
+                false
+                
 
+        let rec comb n l = 
+            match n, l with
+            | 0, _ -> [[]]
+            | _, [] -> []
+            | k, (x::xs) -> List.map ((@) [x]) (comb (k-1) xs) @ comb k xs
+
+        //let rec compareO l = 
+        //    //take list of wires
+
+        //    match l with
+        //    | _ -> [[]]
+        //    | [] -> []
+        //    | hd::tl -> List.map compareOverlap 
+
+        let mutable optimalSpacing = false
+        let mutable iterCount = 0
+        let mutable corrShiftedWiresList = xShiftedWiresList
+        while(not optimalSpacing && iterCount < 10) do
+            //Scan list for seg2 and seg4 overlaps
+            iterCount <- iterCount + 1
+            //corrShiftedWiresList <-
+            //[0..((List.length xShiftedWiresList) - 1)]
+            //|> comb 2 //combinations of indices
+            //|> List.map2 compareOverlap 
+
+        corrShiftedWiresList
+
+            
     let allWiresMap = 
-        shiftedWiresList @ (snd allWiresList) 
+        correctedShiftedWiresList @ (snd allWiresList) 
         |> Map.ofList
 
     {model with Wires = allWiresMap}
