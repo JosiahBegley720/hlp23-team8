@@ -80,7 +80,7 @@ let smartChannelRoute
     let orientedWiresList = 
         channelWiresList
         |> List.partition wireOrientationPredicate
-    let shiftWireList orien
+    //let shiftWireList orientation
     
     //Calculates current deviation of each wire's mid segment from desired position, then calls moveSegment to correct it
     let xShiftedWiresList =
@@ -105,48 +105,56 @@ let smartChannelRoute
     let correctedShiftedWiresList = 
         xShiftedWiresList
         //test if segments 2 or 4 overlap
-        let overlapRange = 0.05 * channel.H
-
-        let compareOverlap (w1, w2) = 
+        let overlapRange = 0.08 * channel.H
+        let switchMidSeg (a,b) wires =
+            wires
+        //check if a wire overlaps with a list of other wires
+        let compareOverlap w1 wireList = 
             //check if they overlap
-            //let w1 = 
+
+            let w2 = snd wireList
             let w12 = fst (getAbsoluteSegmentPos w1 2)
             let w14 = fst (getAbsoluteSegmentPos w1 4)
             let w22 = fst (getAbsoluteSegmentPos w2 2)
             let w24 = fst (getAbsoluteSegmentPos w2 4)
+            //If Y overlap
+            //(None, wireList) |> List.fold folder
             if ((w24.Y < w12.Y + overlapRange  && w12.Y - overlapRange < w24.Y)
-                || (w14.Y < w12.Y + overlapRange)) then
-                true
+                || (w14.Y < w22.Y + overlapRange && w14.Y > w12.Y - overlapRange)) then
+                //if X overlap
+                if(w12.X) then
+                    Some switchMidSeg
+                else
+                    None
             else
-                false
-                
+                None
 
-        let rec comb n l = 
-            match n, l with
-            | 0, _ -> [[]]
-            | _, [] -> []
-            | k, (x::xs) -> List.map ((@) [x]) (comb (k-1) xs) @ comb k xs
+        //ifSwitch would return an option of shifted wires
+        let rec ifSwitch (wires: (ConnectionId*Wire) list option) = 
+            //one pass of checking
+            //stop checking after one switch
+            match wires with
+            | Some (hd::[]) -> Some (hd::[])
+            | Some (hd::tl) -> 
+                //if there is an overlap with selected elem and tail, return an option of it, else return None
+                let pass = compareOverlap hd tl
+                match pass with 
+                | None -> ifSwitch tl //no switch? -> go deeper
+                | Some x-> pass// we did switch? -> return
 
-        //let rec compareO l = 
-        //    //take list of wires
+        //Low level checks if switch
+        //if switch, then go deeper, and return that
+        //else return switched
+        let rec switchTopLevel (wires: (ConnectionId*Wire) list option) = 
+            //take list of wires, return shifted list of wires
+            match ifSwitch wires with
+            | Some (x) -> switchTopLevel (Some (x))
+            | None -> wires
 
-        //    match l with
-        //    | _ -> [[]]
-        //    | [] -> []
-        //    | hd::tl -> List.map compareOverlap 
-
-        let mutable optimalSpacing = false
-        let mutable iterCount = 0
-        let mutable corrShiftedWiresList = xShiftedWiresList
-        while(not optimalSpacing && iterCount < 10) do
-            //Scan list for seg2 and seg4 overlaps
-            iterCount <- iterCount + 1
-            //corrShiftedWiresList <-
-            //[0..((List.length xShiftedWiresList) - 1)]
-            //|> comb 2 //combinations of indices
-            //|> List.map2 compareOverlap 
-
-        corrShiftedWiresList
+        Some(xShiftedWiresList)
+        |> switchTopLevel
+        |> Option.defaultValue xShiftedWiresList
+       //run the recursive switch function
 
             
     let allWiresMap = 
