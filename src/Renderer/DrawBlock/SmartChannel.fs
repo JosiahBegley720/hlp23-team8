@@ -98,48 +98,74 @@ let smartChannelRoute
         |> List.map2 (fun autoPosX absPos  -> autoPosX - absPos) spacedWirePos //list of adjustments
         |> List.map2 (fun (cid,wire) adj -> (cid, moveSegment model wire.Segments[3] adj)) channelWiresList
 
-    //let yShiftedWiresList = 
+
     //if a wire has a start point at at a certain y, then you want it to dip b4 a wire has an end point there
     //or if a wire has a seg2 at a certain y+- dy, then seg4 at that point must start after
     //switch positions of wires , keep making passes
     let correctedShiftedWiresList = 
-        xShiftedWiresList
+        //xShiftedWiresList
         //test if segments 2 or 4 overlap
         let overlapRange = 0.08 * channel.H
-        let switchMidSeg (a,b) wires =
+
+        let switchMidSeg (i1,i2) (wires:(ConnectionId*Wire) list) =
+            let w1 = snd wires[i1]
+            let w2 = snd wires[i2]
+            //check wire orientation so you know whether shift in x or y direction
+            let delta = (fst (getAbsoluteSegmentPos w2 3)).X - (fst (getAbsoluteSegmentPos w1 3)).X
+            
+            let movedWire1 = fst wires[i1], moveSegment model w1.Segments[3] delta             
+            let movedWire2 = fst wires[i2], moveSegment model w2.Segments[3] -delta
+            
             wires
-        //check if a wire overlaps with a list of other wires
-        let compareOverlap w1 wireList = 
-            //check if they overlap
+            |> List.updateAt i1 movedWire1
+            |> List.updateAt i2 movedWire2
 
-            let w2 = snd wireList
-            let w12 = fst (getAbsoluteSegmentPos w1 2)
-            let w14 = fst (getAbsoluteSegmentPos w1 4)
-            let w22 = fst (getAbsoluteSegmentPos w2 2)
-            let w24 = fst (getAbsoluteSegmentPos w2 4)
-            //If Y overlap
-            //(None, wireList) |> List.fold folder
-            if ((w24.Y < w12.Y + overlapRange  && w12.Y - overlapRange < w24.Y)
-                || (w14.Y < w22.Y + overlapRange && w14.Y > w12.Y - overlapRange)) then
-                //if X overlap
-                if(w12.X) then
-                    Some switchMidSeg
-                else
-                    None
+        let rec compareOverlap wire1 wire2 :bool= 
+            let w1 = snd wire1
+            let w2 = snd wire2
+
+            if (fst (getAbsoluteSegmentPos w2 3)).X > (fst (getAbsoluteSegmentPos w1 3)).X then
+                compareOverlap wire2 wire1
             else
-                None
+                let w12 = fst (getAbsoluteSegmentPos w1 2)
+                let w14 = fst (getAbsoluteSegmentPos w1 4)
+                let w22 = fst (getAbsoluteSegmentPos w2 2)
+                let w24 = fst (getAbsoluteSegmentPos w2 4)
 
-        //ifSwitch would return an option of shifted wires
+                //if Y overlap
+                if ((w24.Y < w12.Y + overlapRange  && w12.Y - overlapRange < w24.Y)
+                    || (w14.Y < w22.Y + overlapRange && w14.Y > w12.Y - overlapRange)) then
+                    //if X overlap
+                    if(w12.X > w14.X || w12.X > w14.X) then
+                        true
+                    else
+                        false
+                else
+                    false
+
+        //Perform a single switch with given wire and wireList, if switch is needed
+        let switchComparePass cidWire1 (wireList:(ConnectionId*Wire) list) :(ConnectionId*Wire) list option= 
+
+            let overlapPredicate = compareOverlap cidWire1
+            List.tryFindIndex overlapPredicate wireList
+            |> function
+            | None -> None
+            | Some (i) -> Some(switchMidSeg (0,i) [cidWire1]@wireList)
+
+
+        //return shifted list of wires
         let rec ifSwitch (wires: (ConnectionId*Wire) list option) = 
-            //one pass of checking
-            //stop checking after one switch
+            //one full pass of checking and shifting
+
             match wires with
-            | Some (hd::[]) -> Some (hd::[])
+            | Some (hd::[]) -> wires
+            | Some ([]) -> wires
             | Some (hd::tl) -> 
                 //if there is an overlap with selected elem and tail, return an option of it, else return None
-                let pass = compareOverlap hd tl
+                let pass = switchComparePass hd tl
+
                 match pass with 
-                | None -> ifSwitch tl //no switch? -> go deeper
+                | None -> Some([hd] @ (Option.defaultValue tl (ifSwitch (Some(tl)) )    )) //no switch? -> go deeper and append result to current head
                 | Some x-> pass// we did switch? -> return
 
         //Low level checks if switch
