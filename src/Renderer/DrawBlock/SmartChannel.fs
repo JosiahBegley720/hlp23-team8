@@ -156,29 +156,37 @@ let smartChannelRoute
         //return shifted list of wires
         let rec ifSwitch (wires: (ConnectionId*Wire) list option) = 
             //one full pass of checking and shifting
-
+            //printfn $"{List.length (Option.get wires)}"
             match wires with
-            | Some (hd::[]) -> wires
-            | Some ([]) -> wires
+            | Some (hd::[]) -> None //no switch found for this whole pass->must return None
             | Some (hd::tl) -> 
                 //if there is an overlap with selected elem and tail, return an option of it, else return None
                 let pass = switchComparePass hd tl
-
+                printfn $"{List.length (Option.get wires)}"
                 match pass with 
-                | None -> Some([hd] @ (Option.defaultValue tl (ifSwitch (Some(tl)) )    )) //no switch? -> go deeper and append result to current head
                 | Some x-> pass// we did switch? -> return
+                | None -> 
+                    ifSwitch (Some(tl))
+                    |> function
+                    | None -> None //we've tested the whole list, no switches, we return None
+                    | Some(x) -> Some([hd] @ x) //no switch? -> go deeper and append result to current head
+
 
         //Low level checks if switch
         //if switch, then go deeper, and return that
         //else return switched
-        let rec switchTopLevel (wires: (ConnectionId*Wire) list option) = 
+        let rec switchTopLevel depth (wires: (ConnectionId*Wire) list option)  = 
             //take list of wires, return shifted list of wires
-            match ifSwitch wires with
-            | Some (x) -> switchTopLevel (Some (x))
-            | None -> wires
+            
+            if (depth = 0) then
+                wires
+            else
+                match ifSwitch wires with
+                | Some (x) -> switchTopLevel (depth-1) (Some (x)) 
+                | None -> wires //No switch in the pass, we can stop
 
         Some(xShiftedWiresList)
-        |> switchTopLevel
+        |> switchTopLevel 5
         |> Option.defaultValue xShiftedWiresList
        //run the recursive switch function
 
