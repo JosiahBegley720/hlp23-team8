@@ -37,24 +37,20 @@ open Operators
 /// The Wires going through the channel must be returned as an updated Wires map in model.
 // HLP23: need to update XML doc comments when this function is fully worked out.
 
+///Predicate function determining whether a wire is inside the specified channel/bounding box
 let wireInChannelAndAdjustable channel (connId,wire) :bool = 
     //7 seg wires allowed ONLY
     //9 seg wires allowed in vertical channel ONLY
-    if not (List.length wire.Segments = 7)// && channelOrientation = Vertical 
-            //|| List.length wire.Segments = 9 && channelOrientation = Horizontal ) then 
-        then false
-    else
+    //if not (List.length wire.Segments = 7)// && channelOrientation = Vertical 
+    //        //|| List.length wire.Segments = 9 && channelOrientation = Horizontal ) then 
+    //    then false
+    //else
+        //printfn $"no. of segs {List.length wire.Segments}"
         match wireIntersectsBoundingBox wire channel with
         | None -> false
         | Some x -> true
 
-let wireOrientationPredicate (cid,wire) = 
-    let thirdSegOrientation = 
-        getAbsoluteSegmentPos wire 3
-        |> (fun (st,en) -> getSegmentOrientation st en)
-    match thirdSegOrientation with
-    | Vertical -> true
-    | Horizontal -> false
+
 
 ///Top level function for auto-spacing wires in a bounding box
 let smartChannelRoute 
@@ -76,11 +72,20 @@ let smartChannelRoute
         |> List.sortBy (fun (x,y) -> y.StartPos.X)
     List.map (fun (x,y) -> printf $"{y.Segments.Length}, {getAbsoluteSegmentPos y 3}") channelWiresList |> ignore
 
-    //Further segment channelWiresList into vertical and horizontal wires
+    //Further parition channelWiresList into vertical and horizontal wires
     let orientedWiresList = 
+
+        let wireOrientationPredicate (cid,wire) = 
+
+            getAbsoluteSegmentPos wire 3
+            |> (fun (st,en) -> getSegmentOrientation st en) //Retrieve 3rd segment orientation
+            |> function
+            | Vertical -> true
+            | Horizontal -> false
+
         channelWiresList
         |> List.partition wireOrientationPredicate
-    //let shiftWireList orientation
+
     
     //Calculates current deviation of each wire's mid segment from desired position, then calls moveSegment to correct it
     let shiftedWiresList =
@@ -106,7 +111,7 @@ let smartChannelRoute
             |Vertical -> (fst x).X
             |Horizontal -> (fst x).Y
 
-
+        printfn $"selectedWires length: {List.length selectedWires}"
 
         selectedWires
         |> List.map (fun (cid,wire) -> getAbsoluteSegmentPos wire 3)
@@ -114,6 +119,8 @@ let smartChannelRoute
         |> List.map2 (fun autoPos absPos  -> autoPos - absPos) spacedWirePos //list of adjustments
         |> List.map2 (fun (cid,wire) adj -> (cid, moveSegment model wire.Segments[3] adj)) channelWiresList
 
+    printf $"shiftedWireList:"
+    List.map (fun (x,y) -> printf $"{(fst(getAbsoluteSegmentPos y 3)).X}") shiftedWiresList |> ignore
 
     //if a wire has a start point at at a certain y, then you want it to dip b4 a wire has an end point there
     //or if a wire has a seg2 at a certain y+- dy, then seg4 at that point must start after
@@ -127,16 +134,16 @@ let smartChannelRoute
             |Horizontal -> 0.02 * channel.W
             
 
-        let switchMidSeg (i1,i2) (wires:(ConnectionId*Wire) list) =
-            printfn $"in switchMidSeg"
+        let switchMidSeg updatedModel (i1,i2) (wires:(ConnectionId*Wire) list) =
+            printfn $"in switchMidSeg {(i1,i2)}"
             let w1 = snd wires[i1]
             let w2 = snd wires[i2]
             //check wire orientation so you know whether shift in x or y direction
             let delta = (fst (getAbsoluteSegmentPos w2 3)).X - (fst (getAbsoluteSegmentPos w1 3)).X
-            printfn $"w1: {w1.StartPos} w2: {w2.StartPos}"
+            printfn $"w1: {(getAbsoluteSegmentPos w1 3)} w2: {(getAbsoluteSegmentPos w2 3)}"
             printfn $"delta: {delta}"
-            let movedWire1 = fst wires[i1], moveSegment model w1.Segments[3] delta             
-            let movedWire2 = fst wires[i2], moveSegment model w2.Segments[3] -delta
+            let movedWire1 = fst wires[i1], moveSegment updatedModel w1.Segments[3] delta             
+            let movedWire2 = fst wires[i2], moveSegment updatedModel w2.Segments[3] -delta
             
             wires
             |> List.updateAt i1 movedWire1
@@ -146,55 +153,58 @@ let smartChannelRoute
             let w1 = snd wire1
             let w2 = snd wire2
 
-            if (fst (getAbsoluteSegmentPos w2 3)).X > (fst (getAbsoluteSegmentPos w1 3)).X then
+            if (fst (getAbsoluteSegmentPos w2 3)).X < (fst (getAbsoluteSegmentPos w1 3)).X then
                 compareOverlap wire2 wire1
             else
+                //assume wire1 is further left
+                //wire1 4 is gonna overlap with wire2 2, or wire1 2 is gonna overlap with 
                 let w12 = fst (getAbsoluteSegmentPos w1 2)
                 let w14 = fst (getAbsoluteSegmentPos w1 4)
                 let w22 = fst (getAbsoluteSegmentPos w2 2)
                 let w24 = fst (getAbsoluteSegmentPos w2 4)  
 
                 //if Y overlap
-                if ((w24.Y < w12.Y + overlapRange  && w12.Y - overlapRange < w24.Y)
-                    || (w14.Y < w22.Y + overlapRange && w14.Y > w12.Y - overlapRange)) then
-                    //if X overlap
-                    printfn "y cond sat"
+                if (w14.Y < w22.Y + overlapRange && w14.Y > w22.Y - overlapRange) then
+                    printfn "y cond sat with: "
+                    printfn $"w1: {(getAbsoluteSegmentPos w1 3)} w2: {(getAbsoluteSegmentPos w2 3)}"
                     true
                 else
                     false
 
         //Perform a single switch with given wire and wireList, if switch is needed
-        let switchComparePass cidWire1 (wireList:(ConnectionId*Wire) list) :(ConnectionId*Wire) list option= 
+        let switchComparePass updatedModel cidWire1 (wireList:(ConnectionId*Wire) list) :(ConnectionId*Wire) list option= 
 
             //Curry the predicate to set up comparison to wire1
             let overlapPredicate = compareOverlap cidWire1
+            let index = List.tryFindIndex overlapPredicate wireList
+
             let fullList = [cidWire1]@wireList
             printfn $"fullList length {List.length fullList}"
-            let index = List.tryFindIndex overlapPredicate wireList
+
             printfn $"index: {index}"
             index
             |> function
             | None -> None
-            | Some (i) -> Some(switchMidSeg (0,i+1) fullList)
+            | Some (i) -> Some(switchMidSeg updatedModel (0,i+1) fullList)
 
         //return shifted list of wires
-        let rec ifSwitch (wires: (ConnectionId*Wire) list option) = 
+        let rec scanAndSwitchList updatedModel (wires: (ConnectionId*Wire) list option) = 
             //one full pass of checking and shifting
-            //printfn $"{List.length (Option.get wires)}"
             match wires with
             | Some (hd::[]) -> None //no switch found for this whole pass->must return None
             | Some (hd::tl) -> 
                 //if there is an overlap with selected elem and tail, return an option of it, else return None
-                let pass = switchComparePass hd tl
+                
                 printf $"{List.length (Option.get wires)}"
-                //printfn $"{pass}"
-                match pass with 
+
+                switchComparePass updatedModel hd tl
+                |> function
                 | Some x-> 
                     printfn $"we switched"
-                    pass// we did switch? -> return
+                    Some(x)// we did switch? -> return
                 | None -> 
                     printfn $"we didnt switch"
-                    ifSwitch (Some(tl))
+                    scanAndSwitchList updatedModel (Some(tl))
                     |> function
                     | None -> None //we've tested the whole list, no switches, we return None
                     | Some(x) -> Some([hd] @ x) //no switch? -> go deeper and append result to current head
@@ -203,20 +213,24 @@ let smartChannelRoute
         //Low level checks if switch
         //if switch, then go deeper, and return that
         //else return switched
-        let rec switchTopLevel depth (wires: (ConnectionId*Wire) list option)  = 
+        let rec switchTopLevel updatedModel depth (wires: (ConnectionId*Wire) list option)  = 
             //take list of wires, return shifted list of wires
-            printfn $"depth: {depth}"
+            printfn $"depth at start of switchTopLevel: {depth}"
             if (depth = 0) then
                 wires
             else
-                match ifSwitch wires with
-                | Some (x) -> switchTopLevel (depth-1) (Some (x)) 
+                match scanAndSwitchList updatedModel wires with
+                | Some (x) -> 
+                    //adjust model with new switched wires
+                    let tmpModel = {updatedModel with Wires = Map.ofList x}
+                    switchTopLevel tmpModel (depth-1) (Some (x)) 
                 | None -> wires //No switch in the pass, we can stop
+
         //shiftedWiresList
         Some(shiftedWiresList)
-        |> switchTopLevel 10
+        |> switchTopLevel {model with Wires = Map.ofList shiftedWiresList} 10
         |> Option.defaultValue shiftedWiresList
-       //run the recursive switch function
+
 
             
     let allWiresMap = 
