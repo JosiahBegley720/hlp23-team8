@@ -39,12 +39,14 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
             |> List.map (getConnectedWires wModel)
             |> (fun lst -> Set.intersect ((List.head lst) |> Set) ((List.head (List.tail lst)) |> Set))
             |> Set.toList
-      
+        
         // uses the list of wires to determine a list of connected port ids
         let portConnections =
             wiresToOrder
             |> List.map (fun x -> (x.OutputPort, x.InputPort))
             |> List.map (fun (outputId, inputId) -> (outputId.ToString(), inputId.ToString()))
+            
+        printfn $"Port Connections: {portConnections}"
 
         // generates symbol map for each component
                         
@@ -90,9 +92,11 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
             |> List.sortBy fst
 
 
-        let maps = [(getConnectedNumbers ((getSymbolPortMap otherSymbol)[1]) ((getSymbolPortMap symbolToOrder)[0]) portConnections)|> List.sortByDescending fst
-                    (getConnectedNumbers ((getSymbolPortMap symbolToOrder)[1]) ((getSymbolPortMap otherSymbol)[0]) portConnections)|> List.sortBy snd ]
+        let maps = [(getConnectedNumbers ((getSymbolPortMap otherSymbol)[1]) ((getSymbolPortMap symbolToOrder)[0]) portConnections)|> List.sortByDescending fst;
+                    (getConnectedNumbers ((getSymbolPortMap symbolToOrder)[1]) ((getSymbolPortMap otherSymbol)[0]) portConnections)|> List.sortByDescending snd ]
         
+        printfn $"symbolToOrder:{(getSymbolPortMap symbolToOrder)[1]}"
+        printfn $"otherSymbol:{(getSymbolPortMap otherSymbol)[0]}"
         printfn $"OTHER -> ORDER:{maps[0]}"
         printfn $"ORDER -> OTHER:{maps[1]}"
         
@@ -126,11 +130,8 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
         // updates the corresponding area of the portMap      
         let updatedMapOrder =
                 let portMap =  [Map.find Left symbolToOrder.PortMaps.Order; Map.find Right symbolToOrder.PortMaps.Order]
-                printfn $"ORDER -> OTHER:{maps[1]}"
-                printfn $"PORT IDS:{portMap[1]}"
                 let reorderedList = reorderList portMap maps
                 symbolToOrder.PortMaps.Order |> Map.add Left reorderedList[0] |> Map.add Right reorderedList[1]
-                //symbolToOrder.PortMaps.Order |> Map.add Right reorderedList
         
         let updatedPortMaps = { symbolToOrder.PortMaps with Order = updatedMapOrder }
         let symbol' = { symbolToOrder with PortMaps = updatedPortMaps }
