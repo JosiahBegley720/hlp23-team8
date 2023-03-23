@@ -1,6 +1,7 @@
 ﻿module SmartPortOrder
-open BusWireUpdateHelpers
+open SymbolUpdate
 open CommonTypes
+open SmartHelpers
 open DrawModelType
 open DrawModelType.SymbolT
 open DrawModelType.BusWireT
@@ -26,82 +27,61 @@ open Operators
     It will do nothing if symbolToOrder is not a Custom component (which has re-orderable ports).
 *)
 let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: Symbol): BusWireT.Model =
-    match symbolToOrder.Component.Type, otherSymbol.Component.Type with
-    | Custom ct1, Custom ct2-> 
-        printfn $"SYMBOL TYPE: {symbolToOrder.Component.Type}"
-        // gets the symbol model used for symbol manipulation
-        let sModel = wModel.Symbol
-        printfn $"symbolToOrder.Component.InputPorts.Id: {symbolToOrder.Component.InputPorts |> List.map (fun x -> x.Id)}"
-         
-        // gets the list of wires connected between the two selected components
-        let wiresToOrder =
-            [ [symbolToOrder.Id]; [otherSymbol.Id] ]
-            |> List.map (getConnectedWires wModel)
-            |> (fun lst -> Set.intersect ((List.head lst) |> Set) ((List.head (List.tail lst)) |> Set))
-            |> Set.toList
-        
-        // uses the list of wires to determine a list of connected port ids
-        let portConnections =
-            wiresToOrder
-            |> List.map (fun x -> (x.OutputPort, x.InputPort))
-            |> List.map (fun (outputId, inputId) -> (outputId.ToString(), inputId.ToString()))
-            
-        printfn $"Port Connections: {portConnections}"
+    printfn $"SYMBOL TYPE: {symbolToOrder.Component.Type}"
+    // gets the symbol model used for symbol manipulation
+    let sModel = wModel.Symbol
+    printfn $"symbolToOrder.Component.InputPorts.Id: {symbolToOrder.Component.InputPorts |> List.map (fun x -> x.Id)}"
+    
+    // uses the list of wires to determine a list of connected port ids
+    let portConnections = getPortConnections symbolToOrder otherSymbol wModel
 
-        // generates symbol map for each component
-                        
-        let getSymbolPortMap (symbol: Symbol) =
-            let inputPortMap = symbol.Component.InputPorts
-                                |> List.map (fun port -> (port.Id, port.PortNumber |> Option.defaultValue 0))
-                                |> Map.ofList
-            let outputPortMap = symbol.Component.OutputPorts
-                                |> List.map (fun port -> (port.Id, port.PortNumber |> Option.defaultValue 0))
-                                |> Map.ofList
-            [ inputPortMap; outputPortMap ]
-        
-        let inline reverseTuple tupleList =
-            tupleList
-            |> List.map (fun (x,y) -> (y,x))
-        
-        // used to sort a list of port connections when some connections dont exist (None)
-        let sortList myList =
-            myList |> List.sortWith(fun (x1, y1) (x2, y2) ->
-                match y1, y2 with
-                | None, None -> 0
-                | None, _ -> 1
-                | _, None -> -1
-                | _, _ -> compare y1 y2)
+    // generates symbol map for each component           
+    let getSymbolPortMap (symbol: Symbol) =
+        let inputPortMap = symbol.Component.InputPorts
+                            |> List.map (fun port -> (port.Id, port.PortNumber |> Option.defaultValue 0))
+                            |> Map.ofList
+        let outputPortMap = symbol.Component.OutputPorts
+                            |> List.map (fun port -> (port.Id, port.PortNumber |> Option.defaultValue 0))
+                            |> Map.ofList
+        [ inputPortMap; outputPortMap ]
+    
+    let inline reverseTuple tupleList =
+        tupleList
+        |> List.map (fun (x,y) -> (y,x))
+    
+    // used to sort a list of port connections when some connections dont exist (None)
+    let sortList myList =
+        myList |> List.sortWith(fun (x1, y1) (x2, y2) ->
+            match y1, y2 with
+            | None, None -> 0
+            | None, _ -> 1
+            | _, None -> -1
+            | _, _ -> compare y1 y2)
 
-        // returns the port connections by port number
-        let getConnectedNumbers (map1: Map<string, int>) (map2: Map<string, int>) (connections: (string * string) list) : (int * int option) list =
-            map1
-            |> Map.toList
-            |> List.sortBy snd
-            |> List.rev
-            |> List.mapi (fun i (id, _) -> (id, i))
-            |> Map.ofList
-            |> Seq.map (fun x ->
-                match List.tryFind (fun (_, id2) -> id2 = x.Key) (reverseTuple connections) with
-                | Some (id1, _) ->
-                    match map2.TryFind(id1) with
-                    | Some (int2) -> (x.Value, Some(int2))
-                    | None -> (x.Value, None)
-                | None -> (x.Value, None))
-            |> List.ofSeq
-            |> sortList
-            |> List.sortBy fst
+    // returns the port connections by port number
+    let getConnectedNumbers (map1: Map<string, int>) (map2: Map<string, int>) (connections: (string * string) list) : (int * int option) list =
+        map1
+        |> Map.toList
+        |> List.sortBy snd
+        |> List.rev
+        |> List.mapi (fun i (id, _) -> (id, i))
+        |> Map.ofList
+        |> Seq.map (fun x ->
+            match List.tryFind (fun (_, id2) -> id2 = x.Key) (reverseTuple connections) with
+            | Some (id1, _) ->
+                match map2.TryFind(id1) with
+                | Some (int2) -> (x.Value, Some(int2))
+                | None -> (x.Value, None)
+            | None -> (x.Value, None))
+        |> List.ofSeq
+        |> sortList
+        |> List.sortBy fst
 
 
-        let maps = [(getConnectedNumbers ((getSymbolPortMap otherSymbol)[1]) ((getSymbolPortMap symbolToOrder)[0]) portConnections)|> List.sortByDescending fst;
-                    (getConnectedNumbers ((getSymbolPortMap symbolToOrder)[1]) ((getSymbolPortMap otherSymbol)[0]) portConnections)|> List.sortByDescending snd ]
-        
-        printfn $"symbolToOrder:{(getSymbolPortMap symbolToOrder)[1]}"
-        printfn $"otherSymbol:{(getSymbolPortMap otherSymbol)[0]}"
-        printfn $"OTHER -> ORDER:{maps[0]}"
-        printfn $"ORDER -> OTHER:{maps[1]}"
-        
-        //let connectedNumbers = [getConnectedNumbers symbolAPortMap symbolBPortMap (reverseTuple portConnections); getConnectedNumbers symbolBPortMap symbolAPortMap portConnections]
-        
+    let maps = [(getConnectedNumbers ((getSymbolPortMap otherSymbol)[1]) ((getSymbolPortMap symbolToOrder)[0]) portConnections)|> List.sortByDescending fst;
+                (getConnectedNumbers ((getSymbolPortMap symbolToOrder)[1]) ((getSymbolPortMap otherSymbol)[0]) portConnections)|> List.sortByDescending snd ]
+    match otherSymbol.Component.Type, symbolToOrder.Component.Type with
+    | Custom _, Custom _->
         // reorders the ports based on the existing port order and the port connections
         let reorderList (portIds: string list list) (connections: (int*int option) list list) =
             let filteredList = 
@@ -125,7 +105,6 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
                        | 0 -> portIds[1]
                        | _ -> List.map (fun (index,_) -> portIds[1][index]) connections[1]
             [inputPorts; outputPorts]
-     
         
         // updates the corresponding area of the portMap      
         let updatedMapOrder =
@@ -139,4 +118,15 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
         { wModel with
             Wires = wModel.Wires //wires update call handled in SheetUpdate
             Symbol = { sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols } } //model updated with updated symbol with updated port map
-    | _,_ -> wModel
+    | Custom _, _ ->
+        let rec isMonotonicallyDecreasing lst =
+            match lst with
+            | [] | [_] -> true  // an empty list or a single-element list is considered decreasing
+            | x :: y :: tail -> x > y && isMonotonicallyDecreasing (y :: tail)
+        let decreasingCheck = isMonotonicallyDecreasing (maps[0] |> List.map (fun (_,x) -> x))
+        let symbol' = match decreasingCheck with
+                        | true -> flipSymbol FlipVertical symbolToOrder
+                        | false -> symbolToOrder
+        {wModel with Symbol = { sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols } } 
+    | _,_ ->
+        wModel
