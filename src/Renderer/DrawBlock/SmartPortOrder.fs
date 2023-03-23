@@ -118,15 +118,24 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
         { wModel with
             Wires = wModel.Wires //wires update call handled in SheetUpdate
             Symbol = { sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols } } //model updated with updated symbol with updated port map
-    | Custom _, _ ->
-        let rec isMonotonicallyDecreasing lst =
+      
+    | Custom _, And|Custom _,Or|Custom _,Xor|Custom _,Nand|Custom _,Nor|Custom _,Xnor ->
+        printfn $"map1:{maps[0]}"
+        printfn $"map1:{maps[1]}"
+        let rec isMonotonicallyIncreasing lst =
             match lst with
-            | [] | [_] -> true  // an empty list or a single-element list is considered decreasing
-            | x :: y :: tail -> x > y && isMonotonicallyDecreasing (y :: tail)
-        let decreasingCheck = isMonotonicallyDecreasing (maps[0] |> List.map (fun (_,x) -> x))
-        let symbol' = match decreasingCheck with
-                        | true -> flipSymbol FlipVertical symbolToOrder
-                        | false -> symbolToOrder
-        {wModel with Symbol = { sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols } } 
-    | _,_ ->
-        wModel
+            | [] | [_] -> true
+            | None :: tail -> isMonotonicallyIncreasing tail
+            | Some x :: Some y :: tail -> x < y && isMonotonicallyIncreasing (Some y :: tail)
+            | _ -> false
+
+            
+        let increasingCheck = isMonotonicallyIncreasing (maps[0] |> List.map (fun (_,x) -> x))
+        let symbol' = match increasingCheck with
+                        | true -> symbolToOrder
+                        | false -> flipSymbol FlipVertical symbolToOrder
+                        
+        {wModel with Symbol = { sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols } }
+        
+    | Custom _, Mux2-> wModel
+    | _,_ -> wModel
