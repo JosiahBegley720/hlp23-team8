@@ -86,16 +86,16 @@ let getMinMaxDistOfBBfromXYPosPair (model:Model) (xyPosPair: XYPos * XYPos) =
                                         (bb.TopLeft.X < xyPosPairXmin) && ((bb.TopLeft.X + bb.W) > xyPosPairXmin))
         |> Map.toList
     
-    let allLabelBBList = 
-        allLabelBoundingBoxes
-        |> Map.filter (match xyPosPairOrientation with
-                        |Horizontal -> fun key bb -> 
-                                        (bb.TopLeft.X < xyPosPairXmax) && ((bb.TopLeft.X + bb.W) > xyPosPairXmin) &&
-                                        (bb.TopLeft.Y < xyPosPairYmin) && ((bb.TopLeft.Y + bb.H) > xyPosPairYmin)
-                        | Vertical -> fun key bb -> 
-                                        (bb.TopLeft.Y < xyPosPairYmax) && ((bb.TopLeft.Y + bb.H) > xyPosPairYmin) &&
-                                        (bb.TopLeft.X < xyPosPairXmin) && ((bb.TopLeft.X + bb.W) > xyPosPairXmin))
-        |> Map.toList
+    let allLabelBBList = []
+        // allLabelBoundingBoxes
+        // |> Map.filter (match xyPosPairOrientation with
+        //                 |Horizontal -> fun key bb -> 
+        //                                 (bb.TopLeft.X < xyPosPairXmax) && ((bb.TopLeft.X + bb.W) > xyPosPairXmin) &&
+        //                                 (bb.TopLeft.Y < xyPosPairYmin) && ((bb.TopLeft.Y + bb.H) > xyPosPairYmin)
+        //                 | Vertical -> fun key bb -> 
+        //                                 (bb.TopLeft.Y < xyPosPairYmax) && ((bb.TopLeft.Y + bb.H) > xyPosPairYmin) &&
+        //                                 (bb.TopLeft.X < xyPosPairXmin) && ((bb.TopLeft.X + bb.W) > xyPosPairXmin))
+        // |> Map.toList
     
     (allBBList @ allLabelBBList)
     |> List.map (fun (a,b) -> b)
