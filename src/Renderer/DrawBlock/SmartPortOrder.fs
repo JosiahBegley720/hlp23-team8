@@ -87,25 +87,44 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
             let filteredList = 
                 portIds[0] 
                 |> List.mapi (fun i x -> (i, x)) 
-                |> List.filter (fun (i, _) -> 
-                    not (List.exists (fun (_, index) -> index = Some i) connections[0])) 
+                |> List.filter (fun (i, _) -> not (List.exists (fun (_, index) -> index = Some i) connections[0])) 
                 |> List.map snd
+                
             
+            let numberFilteredList =
+                filteredList
+                |> List.map(fun x -> List.findIndex (fun y -> y = x) portIds[0])
+                |> List.map (fun x -> (x,None))
+            
+            printfn $"Filtered List :{numberFilteredList}" // Filtered List :[]
+            let filteredConnections =
+                connections[0]
+                |> List.filter (fun (_,x) -> x <> None)
+                |> List.append numberFilteredList
+                
             let mutable filteredIndex = 0
-
+            printf "BOB 1"
+            printfn $"PortIds :{portIds[0]}" // [c840cdce-afaa-4ac2-aa95-c912eb89fd33; e5b889a8-ae6a-42c0-8770-0383ff90dae0]
+            printfn $"Connections :{connections[0]}" // [3,1; 2,0; 1,; 0,]
+            printfn $"Filtered List :{filteredList}" // Filtered List :[]
             let inputPorts = match portIds[0].Length with
-                      | 0 -> portIds[0]
-                      | _ -> List.map (fun (_,index) -> match index with
-                                                            | Some int -> portIds[0].[int]
-                                                            | None -> 
-                                                                let filtered = filteredList.[filteredIndex]
-                                                                filteredIndex <- filteredIndex + 1
-                                                                filtered) connections[0]
+                          | 0 -> portIds[0]
+                          | _ -> List.map (fun (_,index) -> match index with
+                                                                | Some int -> portIds[0][int]
+                                                                | None -> match filteredList.Length with
+                                                                    | 0 -> "hey"
+                                                                    | _ ->
+                                                                            let filtered = filteredList[filteredIndex]
+                                                                            filteredIndex <- filteredIndex + 1
+                                                                            filtered) filteredConnections
             let outputPorts = match portIds[1].Length with
-                       | 0 -> portIds[1]
-                       | _ -> List.map (fun (index,_) -> portIds[1][index]) connections[1]
+                          | 0 -> portIds[1]
+                          | _ -> List.map (fun (index,_) -> portIds[1][index]) connections[1]
+            
             [inputPorts; outputPorts]
-        
+
+        printfn $"map 1:{maps[0]}"
+        printfn $"map 2:{maps[1]}"
         // updates the corresponding area of the portMap      
         let updatedMapOrder =
                 let portMap =  [Map.find Left symbolToOrder.PortMaps.Order; Map.find Right symbolToOrder.PortMaps.Order]
@@ -118,8 +137,8 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
         { wModel with
             Wires = wModel.Wires //wires update call handled in SheetUpdate
             Symbol = { sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols } } //model updated with updated symbol with updated port map
-      
-    | Custom _, And|Custom _,Or|Custom _,Xor|Custom _,Nand|Custom _,Nor|Custom _,Xnor ->
+        
+    | Custom _, And|Custom _,Or|Custom _,Xor|Custom _,Nand|Custom _,Nor|Custom _,Xnor |Custom _,NbitsAdder _|Custom _,NbitsAdderNoCout _|Custom _,NbitsXor _|Custom _,NbitsAnd _|Custom _,NbitsOr _->
         printfn $"map1:{maps[0]}"
         printfn $"map1:{maps[1]}"
         let rec isMonotonicallyIncreasing lst =
