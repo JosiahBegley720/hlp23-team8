@@ -16,3 +16,6 @@ Added an extra input parameter to AddPortPosToRender to allow us to offset the p
 2. SmartChannel
 
 getChannel replaced with getOrientedChannel
+
+3. SmartAutoroute
+    - replace autoroute with smartautoroute
