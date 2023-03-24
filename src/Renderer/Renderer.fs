@@ -194,9 +194,11 @@ let viewMenu dispatch =
 
         makeMenu false "Symbol Type" [
             makeItem "IEEE Form" None (fun ev ->
+                maindispatch <| SetSymbolTypeUserData SymbolT.SymbolType.Old
                 symbolDispatch ( SymbolT.Msg.SetSymbolType SymbolT.SymbolType.Old) //HLP23 HannahShewan
             )
             makeItem "Box Form" None (fun ev -> 
+                maindispatch <| SetSymbolTypeUserData SymbolT.SymbolType.New
                 symbolDispatch (SymbolT.Msg.SetSymbolType SymbolT.SymbolType.New) //HLP23 HannahShewan
             ; ) 
             ]

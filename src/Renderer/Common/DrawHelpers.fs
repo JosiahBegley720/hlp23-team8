@@ -260,7 +260,7 @@ let makePolygon (points: string) (polygonParameters: Polygon) =
 
 ///Makes ReactElement of three arcs orientated in the shape of an OR gate, useful for OR/XOR/NXOR/NOR. Hannah Shewan HLP23
 let makeOr parameters = 
-    ($"M0 40 A60 40 0 0 0 55 20 A60 40 0 0 0 0 0   M0 0 A15 20 0 0 1 0 40", parameters) ||> makePathFromAttr;
+    ($"M-7 43 A53 43 0 0 0 48 23 A53 43 0 0 0 -7 3   M-7 3 A8 23 0 0 1 -7 43", parameters) ||> makePathFromAttr;
 
 
 /// Makes a circle ReactElement

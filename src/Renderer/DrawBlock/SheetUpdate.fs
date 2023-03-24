@@ -377,6 +377,9 @@ let update (msg : Msg) (model : Model): Model*Cmd<Msg> =
             wireCmd (BusWireT.UpdateWireDisplayType BusWireT.Modern)
             wireCmd (BusWireT.MakeJumps wires)
         ]
+
+        
+
                 
     // ---------------------------- Issie Messages ---------------------------- //
 

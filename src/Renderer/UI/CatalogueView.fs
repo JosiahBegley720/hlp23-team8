@@ -845,10 +845,10 @@ let viewCatalogue model dispatch =
                     makeMenuGroup
                         "Gates"
                         [ catTip1 "Not"  (fun _ -> createCompStdLabel Not model dispatch) "Invertor: output is negation of input"
-                          catTip1 "And"  (fun _ -> createNbitsGatePopup (And None) model dispatch) "Output is 1 if all the two inputs are 1"
-                          catTip1 "Or"   (fun _ -> createNbitsGatePopup (Or None) model dispatch) "Output is 1 if either of the two inputs are 1"
+                          catTip1 "And"  (fun _ -> createNbitsGatePopup (And None) model dispatch) "Output is 1 if all the inputs are 1"
+                          catTip1 "Or"   (fun _ -> createNbitsGatePopup (Or None) model dispatch) "Output is 1 if any of the inputs are 1"
                           catTip1 "Xor"  (fun _ -> createNbitsGatePopup (Xor None) model dispatch) "Output is 1 if exactly one input is 1"
-                          catTip1 "Nand" (fun _ -> createNbitsGatePopup (Nand None) model dispatch) "Output is 0 if all the inputs are 1"
+                          catTip1 "Nand" (fun _ -> createNbitsGatePopup (Nand None) model dispatch) "Output is 0 if all of the inputs are 1"
                           catTip1 "Nor"  (fun _ -> createNbitsGatePopup (Nor None) model dispatch) "Output is 0 if any of the inputs are 1"
                           catTip1 "Xnor" (fun _ -> createNbitsGatePopup (Xnor None) model dispatch) "Output is 1 if exactly one input is 1"]
                     makeMenuGroup
