@@ -201,7 +201,7 @@ let getMinMaxDistOfBBfromXYPosPair (model:Model) (xyPosPair: XYPos * XYPos) =
                                     match state with 
                                     |A, B -> ((min A (bb.TopLeft.X - xyPosPairXmin)), (max B (bb.TopLeft.X + bb.W - xyPosPairXmin)))))
                     (0.0,0.0)
-                    
+                  
 /// Returns the map of wires that are connected to a list of components given as inputs, useful for port information and wire routing
 /// HLP23: AUTHOR Josiah
 let getConnectedWireMap (model: Model) compIds: Map<'a,Wire>=
@@ -225,4 +225,12 @@ let getPortConnections (symbolA: Symbol) (symbolB: Symbol) (wModel: Model) =
     |> (fun lst -> Set.intersect ((List.head lst) |> Set) ((List.head (List.tail lst)) |> Set))
     |> Set.toList
     |> List.map (fun x -> (x.OutputPort, x.InputPort))
-    |> List.map (fun (outputId, inputId) -> (outputId.ToString(), inputId.ToString()))                 
+    |> List.map (fun (outputId, inputId) -> (outputId.ToString(), inputId.ToString()))    
+
+/// This function returns a list of wire connected to the specified output port
+/// This function helps the implementation of unhugSegment function
+/// HLP23: AUTHOR Rahimi
+let getConnectedWiresByOutputPort model outPort =
+        let wireList = getWireList model
+        wireList
+        |> List.filter (fun (w: Wire) -> w.OutputPort = outPort)             

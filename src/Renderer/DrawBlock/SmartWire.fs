@@ -215,13 +215,18 @@ let smartRouteSegments2 model (segments: Segment list) startPos initialOrientati
     (segments, (sortedIndex))
     ||> List.fold (fun segs i -> smartRouteSegment2 model segs startPos initialOrientation 15 i)  
 
-/// helper
+/// This function returns a list of wire connected to the specified output port
+/// This function helps the implementation of unhugSegment function
+/// HLP23: AUTHOR Rahimi
 let getConnectedWiresByOutputPort model outPort =
         let wireList = getWireList model
         wireList
         |> List.filter (fun (w: Wire) -> w.OutputPort = outPort)
 
-/// sub-function that implements unhugging of wires from the same output port
+/// This function returns an unhugged segment if the initial segment is hugged if possible
+/// else, it returns  the best possible solution 
+/// The limitation of this function is that it only attempt 5 times before defaulting to original segements
+/// to avoid high latency and infinite loop problem
 let rec unhugSegment model (wire: Wire) (segOP: Segment list option) segDef lim =
     if wire.InitialOrientation = Vertical then segOP
     else
