@@ -132,7 +132,7 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
         
         { wModel with Symbol = { sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols } } //model updated with updated symbol with updated port map
         
-    | Custom _, And|Custom _,Or|Custom _,Xor|Custom _,Nand|Custom _,Nor|Custom _,Xnor |Custom _,NbitsAdder _|Custom _,NbitsAdderNoCout _|Custom _,NbitsXor _|Custom _,NbitsAnd _|Custom _,NbitsOr _->
+    | Custom _, And|Custom _,Or|Custom _,Xor|Custom _,Nand|Custom _,Nor|Custom _,Xnor |Custom _,NbitsAdder _|Custom _,NbitsAdderNoCout _|Custom _,NbitsXor _|Custom _,NbitsAnd _|Custom _,NbitsOr _| Custom _, Mux2->
         printfn $"map1:{maps[0]}"
         printfn $"map1:{maps[1]}"
         let rec isMonotonicallyIncreasing lst =
@@ -140,7 +140,7 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
             | [] | [_] -> true
             | None :: tail -> isMonotonicallyIncreasing tail
             | Some x :: Some y :: tail -> x < y && isMonotonicallyIncreasing (Some y :: tail)
-            | Some _ :: None :: tail -> isMonotonicallyIncreasing (tail)
+            | Some x :: None :: tail -> isMonotonicallyIncreasing (Some x :: tail)
             | _ -> false
 
             
@@ -151,5 +151,21 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
                         
         {wModel with Symbol = { sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols } }
         
-    | Custom _, Mux2-> wModel
+    | Custom _, Mux4| Custom _, Mux8->
+        let rec calculatePenalty lst =
+            match lst with
+            | [] | [_] -> 0
+            | None :: tail -> calculatePenalty tail
+            | Some x :: Some y :: tail -> match x < y with
+                                            | true -> calculatePenalty (Some y :: tail)
+                                            | false -> 1 + calculatePenalty (Some x :: tail)
+            | Some x :: None :: tail -> calculatePenalty (Some x :: tail)
+            
+        let penalty = calculatePenalty (maps[0] |> List.map (fun (_,x) -> x))
+        printfn $"Penalty: {penalty}"
+        let symbol' = match (penalty < maps[0].Length/2) with
+            | true -> symbolToOrder
+            | false -> flipSymbol FlipVertical symbolToOrder
+        {wModel with Symbol = { sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols } }
+        
     | _,_ -> wModel
