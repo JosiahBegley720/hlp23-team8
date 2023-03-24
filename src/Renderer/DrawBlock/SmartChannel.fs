@@ -168,8 +168,27 @@ let smartChannelRoute
 
                 let overlapCondition = 
                     match channelOrientation with
-                    | Vertical -> (w14.Y < w22.Y + overlapRange && w14.Y > w22.Y - overlapRange)
-                    | Horizontal -> (w12.X < w24.X + overlapRange && w12.X > w24.X - overlapRange) //|| (w14.X < w22.X + overlapRange && w14.X > w22.X - overlapRange)
+                    | Vertical -> 
+                        //if 2.X is less than 4?
+                        let w1Dir = sign (w14.X - w12.X)//pos if left to right, neg if right to left
+                        let w2Dir = sign (w24.X - w22.X)
+
+                        match w1Dir, w2Dir with
+                        | 1,1 -> (w14.Y < w22.Y + overlapRange && w14.Y > w22.Y - overlapRange)
+                        | -1,-1 -> (w12.Y < w24.Y + overlapRange && w12.Y > w24.Y - overlapRange)
+                        | 1, -1 -> (w14.Y < w24.Y + overlapRange && w14.Y > w24.Y - overlapRange)
+                        | -1, 1 -> (w12.Y < w22.Y + overlapRange && w12.Y > w22.Y - overlapRange)
+                        |_,_ -> false //make compiler happy
+                    | Horizontal ->
+                        let w1Dir = sign (w14.Y - w12.Y)//pos if top to bottom, neg if bottom to top
+                        let w2Dir = sign (w24.Y - w22.Y)
+
+                        match w1Dir, w2Dir with
+                        | 1,1 -> (w14.X < w22.X + overlapRange && w14.X > w22.X - overlapRange)
+                        | -1,-1 -> (w12.X < w24.X + overlapRange && w12.X > w24.X - overlapRange)
+                        | 1, -1 -> (w14.X < w24.X + overlapRange && w14.X > w24.X - overlapRange)
+                        | -1, 1 -> (w12.X < w22.X + overlapRange && w12.X > w22.X - overlapRange)
+                        |_,_ -> false //make compiler happy
 
                 if overlapCondition then
                     true
