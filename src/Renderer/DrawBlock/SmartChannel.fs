@@ -38,9 +38,6 @@ open Operators
 // HLP23: need to update XML doc comments when this function is fully worked out.
 
 
-
-
-
 ///Top level function for auto-spacing wires in a bounding box
 let smartChannelRoute 
         (channelOrientation: Orientation) 
@@ -125,7 +122,7 @@ let smartChannelRoute
     List.map (fun (x,y) -> printf $"{(fst(getAbsoluteSegmentPos y 3)).X}") shiftedWiresList |> ignore
 
     ///Shifted wires switched to minimise overlap
-    let switchedShiftedWiresList = 
+    let minOverlapShiftedWiresList = 
         
         //How close together we disallow overlaps
         let overlapRange = 
@@ -226,7 +223,7 @@ let smartChannelRoute
             | Some ([]) -> None //won't happen, make compiler happy
 
         ///Take list of 7-seg wires, returns switched list of wires to minimise overlap
-        let rec switchTopLevel updatedModel depth (wires: (ConnectionId*Wire) list option)  = 
+        let rec minimiseOverlap updatedModel depth (wires: (ConnectionId*Wire) list option)  = 
             
             printfn $"depth at start of switchTopLevel: {depth}"
             if (depth < 1.0) then
@@ -236,19 +233,19 @@ let smartChannelRoute
                 | Some (x) -> 
                     //adjust model with new switched wires
                     let tmpModel = {updatedModel with Wires = Map.ofList x}
-                    switchTopLevel tmpModel (depth-1.0) (Some (x)) 
+                    minimiseOverlap tmpModel (depth-1.0) (Some (x)) 
                 | None -> wires //No switch in the pass, we can stop
 
         let maxDepth = (2.0** (float (List.length shiftedWiresList)))
 
         Some(shiftedWiresList)
-        |> switchTopLevel {model with Wires = Map.ofList shiftedWiresList} maxDepth
+        |> minimiseOverlap {model with Wires = Map.ofList shiftedWiresList} maxDepth
         |> Option.defaultValue shiftedWiresList
 
 
             
     let allWiresMap = 
-        switchedShiftedWiresList @ (snd allWiresList) 
+        minOverlapShiftedWiresList @ (snd allWiresList) 
         |> Map.ofList
 
     {model with Wires = allWiresMap}
