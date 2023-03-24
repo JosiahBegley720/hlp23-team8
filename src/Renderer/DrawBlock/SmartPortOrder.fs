@@ -151,7 +151,7 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
             Symbol = {sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols}
         }
         
-    | Custom _, And|Custom _,Or|Custom _,Xor|Custom _,Nand|Custom _,Nor|Custom _,Xnor |Custom _,NbitsAdder _|Custom _,NbitsAdderNoCout _|Custom _,NbitsXor _|Custom _,NbitsAnd _|Custom _,NbitsOr _->
+    | Custom _, And _ |Custom _, Or _ |Custom _,Xor _ |Custom _,Nand _ |Custom _,Nor _ |Custom _,Xnor _ |Custom _,NbitsAdder _|Custom _,NbitsAdderNoCout _|Custom _,NbitsXor _|Custom _,NbitsAnd _|Custom _,NbitsOr _->
         // port reordering of standard components
         // determines whether the order of ports is optimal
         printfn $"map1:{maps[0]}"
