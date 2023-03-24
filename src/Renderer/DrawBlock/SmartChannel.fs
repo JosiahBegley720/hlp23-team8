@@ -37,18 +37,7 @@ open Operators
 /// The Wires going through the channel must be returned as an updated Wires map in model.
 // HLP23: need to update XML doc comments when this function is fully worked out.
 
-///Predicate function determining whether a wire is inside the specified channel/bounding box
-let wireInChannelAndAdjustable channel (connId,wire) :bool = 
-    //7 seg wires allowed ONLY
-    //9 seg wires allowed in vertical channel ONLY
-    //if not (List.length wire.Segments = 7)// && channelOrientation = Vertical 
-    //        //|| List.length wire.Segments = 9 && channelOrientation = Horizontal ) then 
-    //    then false
-    //else
-        //printfn $"no. of segs {List.length wire.Segments}"
-        match wireIntersectsBoundingBox wire channel with
-        | None -> false
-        | Some x -> true
+
 
 
 
@@ -60,6 +49,18 @@ let smartChannelRoute
             :Model =
     let tl = channel.TopLeft
     printfn $"SmartChannel: channel {channelOrientation}:(%.1f{tl.X},%.1f{tl.Y}) W=%.1f{channel.W} H=%.1f{channel.H}"
+
+    ///Predicate function determining whether a wire is inside the specified channel/bounding box
+    let wireInChannelAndAdjustable channel (connId,wire) :bool = 
+        //7 seg wires allowed ONLY
+        if not (List.length wire.Segments = 7 || 
+                List.length wire.Segments = 5 && wire.Segments[3].Mode = Manual) then
+            false
+        else
+            printfn $"no. of segs {List.length wire.Segments}"
+            match wireIntersectsBoundingBox wire channel with
+            | None -> false
+            | Some x -> true
 
     ///List of all wires partitioned into in channel/not in channel
     let allWiresList = 
@@ -155,19 +156,31 @@ let smartChannelRoute
         let rec compareOverlap wire1 wire2 :bool= 
             let w1 = snd wire1
             let w2 = snd wire2
+            
+            let wire1Leftmost = (fst (getAbsoluteSegmentPos w2 3)).X < (fst (getAbsoluteSegmentPos w1 3)).X
+            let wire1Topmost = (fst (getAbsoluteSegmentPos w2 3)).Y < (fst (getAbsoluteSegmentPos w1 3)).Y
 
-            //wire1 must be furthest left
-            if (fst (getAbsoluteSegmentPos w2 3)).X < (fst (getAbsoluteSegmentPos w1 3)).X then
+            match channelOrientation, wire1Leftmost, wire1Topmost with
+            |Vertical, true, _ -> 
+                printfn $"switch1"
                 compareOverlap wire2 wire1
-            else
+            |Horizontal, _, true -> 
+                printfn $"switch2"
+                compareOverlap wire2 wire1
+            |_ -> 
+
                 //wire1 seg 4 overlaps with wire2 seg 2, or wire1 seg 2 overlaps with wire2 seg 4
                 let w12 = fst (getAbsoluteSegmentPos w1 2)
                 let w14 = fst (getAbsoluteSegmentPos w1 4)
                 let w22 = fst (getAbsoluteSegmentPos w2 2)
                 let w24 = fst (getAbsoluteSegmentPos w2 4)  
 
-                //if Y overlap
-                if (w14.Y < w22.Y + overlapRange && w14.Y > w22.Y - overlapRange) then
+                let overlapCondition = 
+                    match channelOrientation with
+                    | Vertical -> (w14.Y < w22.Y + overlapRange && w14.Y > w22.Y - overlapRange)
+                    | Horizontal -> (w14.X < w22.X + overlapRange && w14.X > w22.X - overlapRange)
+
+                if overlapCondition then
                     printfn "Overlap detected"
                     //printfn $"w1: {(getAbsoluteSegmentPos w1 3)} w2: {(getAbsoluteSegmentPos w2 3)}"
                     true
@@ -190,27 +203,27 @@ let smartChannelRoute
             | None -> None
             | Some (i) -> Some(switchMidSeg updatedModel (0,i+1) fullList)
 
-        //return shifted list of wires
+        //Detect any overlaps down the length of the whole list
         let rec scanAndSwitchList updatedModel (wires: (ConnectionId*Wire) list option) = 
             //one full pass of checking and shifting
             match wires with
-            | Some (hd::[]) -> None //no switch found for this whole pass->must return None
+
+            | Some (hd::[]) -> None //no switch found for this whole pass-> return None
             | Some (hd::tl) -> 
-                //if there is an overlap with selected elem and tail, return an option of it, else return None
-                
                 printf $"{List.length (Option.get wires)}"
 
                 switchCompareSinglePass updatedModel hd tl
                 |> function
-                | Some x-> 
-                    printfn $"we switched"
-                    Some(x)
+                | Some x-> Some(x) //Switched
                 | None -> 
-                    printfn $"we didnt switch"
+                    //printfn $"we didnt switch"
                     scanAndSwitchList updatedModel (Some(tl))
                     |> function
                     | None -> None //we've tested the whole list, no switches, we return None
                     | Some(x) -> Some([hd] @ x) //no switch? -> go deeper and append result to current head
+
+            | None -> raise (System.ApplicationException("Infinite recursion in wire switching")) // really won't happen, make compiler happy
+            | Some ([]) -> None //won't happen, make compiler happy
 
         ///Take list of 7-seg wires, returns switched list of wires to minimise overlap
         let rec switchTopLevel updatedModel depth (wires: (ConnectionId*Wire) list option)  = 
