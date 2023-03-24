@@ -81,7 +81,8 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
     let maps = [(getConnectedNumbers ((getSymbolPortMap otherSymbol)[1]) ((getSymbolPortMap symbolToOrder)[0]) portConnections)|> List.sortByDescending fst;
                 (getConnectedNumbers ((getSymbolPortMap symbolToOrder)[1]) ((getSymbolPortMap otherSymbol)[0]) portConnections)|> List.sortByDescending snd ]
     match otherSymbol.Component.Type, symbolToOrder.Component.Type with
-    | Custom _, Custom _->
+    | _, Custom _->
+        // port reordering of custom components
         // reorders the ports based on the existing port order and the port connections
         let reorderList (portIds: string list list) (connections: (int*int option) list list) =
             let filteredList = 
@@ -119,8 +120,6 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
             
             [inputPorts; outputPorts]
 
-        printfn $"map 1:{maps[0]}"
-        printfn $"map 2:{maps[1]}"
         // updates the corresponding area of the portMap      
         let updatedMapOrder =
                 let portMap =  [Map.find Left symbolToOrder.PortMaps.Order; Map.find Right symbolToOrder.PortMaps.Order]
@@ -132,7 +131,9 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
         
         { wModel with Symbol = { sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols } } //model updated with updated symbol with updated port map
         
-    | Custom _, And|Custom _,Or|Custom _,Xor|Custom _,Nand|Custom _,Nor|Custom _,Xnor |Custom _,NbitsAdder _|Custom _,NbitsAdderNoCout _|Custom _,NbitsXor _|Custom _,NbitsAnd _|Custom _,NbitsOr _| Custom _, Mux2->
+    | Custom _, And|Custom _,Or|Custom _,Xor|Custom _,Nand|Custom _,Nor|Custom _,Xnor |Custom _,NbitsAdder _|Custom _,NbitsAdderNoCout _|Custom _,NbitsXor _|Custom _,NbitsAnd _|Custom _,NbitsOr _->
+        // port reordering of standard components
+        // determines whether the order of ports is optimal
         printfn $"map1:{maps[0]}"
         printfn $"map1:{maps[1]}"
         let rec isMonotonicallyIncreasing lst =
@@ -151,7 +152,10 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
                         
         {wModel with Symbol = { sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols } }
         
-    | Custom _, Mux4| Custom _, Mux8->
+    | Custom _, Mux2| Custom _, Mux4| Custom _, Mux8 ->
+        // port reordering of Mux components
+        // heuristic used to determine whether flipping a mux of any size minimises wire crossing
+        
         let rec calculatePenalty lst =
             match lst with
             | [] | [_] -> 0
@@ -160,12 +164,14 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
                                             | true -> calculatePenalty (Some y :: tail)
                                             | false -> 1 + calculatePenalty (Some x :: tail)
             | Some x :: None :: tail -> calculatePenalty (Some x :: tail)
-            
+        
+        // based on this heuristic flips symbol
         let penalty = calculatePenalty (maps[0] |> List.map (fun (_,x) -> x))
-        printfn $"Penalty: {penalty}"
-        let symbol' = match (penalty < maps[0].Length/2) with
-            | true -> symbolToOrder
-            | false -> flipSymbol FlipVertical symbolToOrder
+        printfn $"PENALTY: {penalty}"
+        printfn $"MAP: {(maps[0]|> List.filter (fun (_,x) -> x <> None)).Length/2}"
+        let symbol' = match (penalty < ((maps[0]|> List.filter (fun (_,x) -> x <> None)).Length/2)) with
+                        | true -> symbolToOrder
+                        | false -> flipSymbol FlipVertical symbolToOrder
         {wModel with Symbol = { sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols } }
         
     | _,_ -> wModel

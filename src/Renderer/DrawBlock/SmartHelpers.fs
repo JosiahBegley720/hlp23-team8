@@ -202,9 +202,10 @@ let getMinMaxDistOfBBfromXYPosPair (model:Model) (xyPosPair: XYPos * XYPos) =
                                     |A, B -> ((min A (bb.TopLeft.X - xyPosPairXmin)), (max B (bb.TopLeft.X + bb.W - xyPosPairXmin)))))
                     (0.0,0.0)
                     
-(*Given two components, this helper function returns a tuple list containing with port connection mapping*)
+(*Given two components, this helper function returns a tuple list containing the port connection mapping between the two symbols. Of the form
+[(a,b);(c,d);(e,f)] where a,b,c,d,e,f are port numbers options. In the case a port has no connections it is represented as None and will be printed in the form
+[(a,);(c,d);(e,)] in the case that a and e have no connections*)
 /// HLP23: AUTHOR Josiah
-
 let getPortConnections (symbolA: Symbol) (symbolB: Symbol) (wModel: Model) =
     [ [symbolA.Id]; [symbolB.Id] ]
     |> List.map (getConnectedWires wModel)
