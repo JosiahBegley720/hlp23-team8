@@ -103,10 +103,6 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
                 |> List.append numberFilteredList
                 
             let mutable filteredIndex = 0
-            printf "BOB 1"
-            printfn $"PortIds :{portIds[0]}" // [c840cdce-afaa-4ac2-aa95-c912eb89fd33; e5b889a8-ae6a-42c0-8770-0383ff90dae0]
-            printfn $"Connections :{connections[0]}" // [3,1; 2,0; 1,; 0,]
-            printfn $"Filtered List :{filteredList}" // Filtered List :[]
             let inputPorts = match portIds[0].Length with
                           | 0 -> portIds[0]
                           | _ -> List.map (fun (_,index) -> match index with
@@ -134,9 +130,7 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
         let updatedPortMaps = { symbolToOrder.PortMaps with Order = updatedMapOrder }
         let symbol' = { symbolToOrder with PortMaps = updatedPortMaps }
         
-        { wModel with
-            Wires = wModel.Wires //wires update call handled in SheetUpdate
-            Symbol = { sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols } } //model updated with updated symbol with updated port map
+        { wModel with Symbol = { sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols } } //model updated with updated symbol with updated port map
         
     | Custom _, And|Custom _,Or|Custom _,Xor|Custom _,Nand|Custom _,Nor|Custom _,Xnor |Custom _,NbitsAdder _|Custom _,NbitsAdderNoCout _|Custom _,NbitsXor _|Custom _,NbitsAnd _|Custom _,NbitsOr _->
         printfn $"map1:{maps[0]}"
@@ -146,6 +140,7 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
             | [] | [_] -> true
             | None :: tail -> isMonotonicallyIncreasing tail
             | Some x :: Some y :: tail -> x < y && isMonotonicallyIncreasing (Some y :: tail)
+            | Some _ :: None :: tail -> isMonotonicallyIncreasing (tail)
             | _ -> false
 
             
