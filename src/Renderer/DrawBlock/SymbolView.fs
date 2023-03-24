@@ -194,8 +194,8 @@ let createComponent (comp:Component) (colour:string) (outlineColour:string) (opa
                  makeAnyPath {X = 20; Y = comp.H} (makePartArcAttr 5.0 -20.0 -20.0 25.0 20.0) parameters;
                  makeCircle (20.0 + 26.0) (comp.H/2.0) {defaultCircle with R = 3; Fill = parameters.Fill};]
 
-        |Not ->  [makePolygon ($"0,20 30,0 0,-20") {defaultPolygon with Fill=parameters.Fill};
-                 makeCircle 34.0 0.0 {defaultCircle with R=4; Fill=parameters.Fill}]  
+        |Not ->  [makePolygon ($"0,35 30,15 0,-5") {defaultPolygon with Fill=parameters.Fill};
+                 makeCircle 34.0 15.0 {defaultCircle with R=4; Fill=parameters.Fill}]  
 
         |Or n ->  [makeOr parameters];
 
@@ -299,7 +299,7 @@ let drawSymbol (symbol:Symbol) (theme:ThemeType) (symbolType: SymbolType) =
                 [|{X=0;Y=H/2.}; {X=W;Y=H/2.}|]
             | BusCompare _ |BusCompare1 _-> 
                 [|{X=0;Y=0};{X=0;Y=H};{X=W*0.6;Y=H};{X=W*0.8;Y=H*0.7};{X=W;Y=H*0.7};{X=W;Y =H*0.3};{X=W*0.8;Y=H*0.3};{X=W*0.6;Y=0}|]
-            | Not -> 
+            | Not -> //HLP23 Hannah Shewan
                 [|{X=0;Y=20};{X=0;Y=(-20)};{X=30;Y=0}|]
             | Nand _ | Nor _ | Xnor _ -> 
                 [|{X=0;Y=0};{X=0;Y=H};{X=W;Y=H};{X=W;Y=H/2.};{X=W+9.;Y=H/2.};{X=W;Y=H/2.-8.};{X=W;Y=H/2.};{X=W;Y=0}|]

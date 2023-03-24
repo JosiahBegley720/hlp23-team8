@@ -929,7 +929,7 @@ let update (msg : Msg) oldModel =
             {model with UserData = data}
             |> userDataToDrawBlockModel
         model, Cmd.none
-    | SetSymbolTypeUserData (symbolType: DrawModelType.SymbolT.SymbolType) ->
+    | SetSymbolTypeUserData (symbolType:  DrawModelType.SymbolT.SymbolType) ->
         let model =
             {model with UserData = {model.UserData with SymbolType = symbolType}}
             |> userDataToDrawBlockModel 
