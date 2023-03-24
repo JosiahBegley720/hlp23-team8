@@ -185,11 +185,11 @@ let createComponent (comp:Component) (colour:string) (outlineColour:string) (opa
     | New -> createBiColorPolygon points colour strokeColor opacity strokeWidth comp;
     | Old ->     
         match comp.Type with 
-        |And ->  [makePolygon ($"0,0 20, 0 20, {comp.H} 0, {comp.H}") {defaultPolygon with Fill = parameters.Fill};
+        |And n ->  [makePolygon ($"0,0 20, 0 20, {comp.H} 0, {comp.H}") {defaultPolygon with Fill = parameters.Fill};
                  makeAnyPath {X = 20; Y=0} (makeLineAttr 0 comp.H) {parameters with Stroke = parameters.Fill; StrokeWidth = "1.5px"};
                  makeAnyPath {X = 20; Y = comp.H} (makePartArcAttr 5.0 -20.0 -20.0 25.0 20.0) parameters;]
 
-        |Nand -> [makePolygon ($"0,0 20,0 20,{comp.H} 0,{comp.H}") {defaultPolygon with Fill = parameters.Fill};
+        |Nand n -> [makePolygon ($"0,0 20,0 20,{comp.H} 0,{comp.H}") {defaultPolygon with Fill = parameters.Fill};
                  makeAnyPath {X = 20; Y=0} (makeLineAttr 0 comp.H) {parameters with Stroke = parameters.Fill; StrokeWidth = "1.5px"};
                  makeAnyPath {X = 20; Y = comp.H} (makePartArcAttr 5.0 -20.0 -20.0 25.0 20.0) parameters;
                  makeCircle (20.0 + 26.0) (comp.H/2.0) {defaultCircle with R = 3; Fill = parameters.Fill};]
@@ -197,18 +197,17 @@ let createComponent (comp:Component) (colour:string) (outlineColour:string) (opa
         |Not ->  [makePolygon ($"0,20 30,0 0,-20") {defaultPolygon with Fill=parameters.Fill};
                  makeCircle 34.0 0.0 {defaultCircle with R=4; Fill=parameters.Fill}]  
 
-        |Or ->   [makeOr parameters];
+        |Or n ->  [makeOr parameters];
 
-        |Nor ->  [makeOr parameters;
+        |Nor n -> [makeOr parameters;
+                  makeCircle 58 20 {defaultCircle with R = 3; Fill=parameters.Fill}] 
 
-                 makeCircle 58 20 {defaultCircle with R = 3; Fill=parameters.Fill}] 
+        |Xor n -> [makeOr parameters;
+                  makeAnyPath {X = -5.0; Y= 0.0} ($"C-5 0 20 20 -5 40") {parameters with Fill = "None"; StrokeWidth = "1.5px"};]
 
-        |Xor ->  [makeOr parameters;
-                 makeAnyPath {X = -5.0; Y= 0.0} ($"C-5 0 20 20 -5 40") {parameters with Fill = "None"; StrokeWidth = "1.5px"};]
-
-        |Xnor -> [makeOr parameters;
-                 makeAnyPath {X = -5.0; Y= 0.0} ($"C-5 0 20 20 -5 40") {parameters with Fill = "None"; StrokeWidth = "1.5px"};
-                 makeCircle 58 20 {defaultCircle with R = 3; Fill=parameters.Fill}]
+        |Xnor n -> [makeOr parameters;
+                   makeAnyPath {X = -5.0; Y= 0.0} ($"C-5 0 20 20 -5 40") {parameters with Fill = "None"; StrokeWidth = "1.5px"};
+                   makeCircle 58 20 {defaultCircle with R = 3; Fill=parameters.Fill}]
 
         | _ ->   createBiColorPolygon points colour strokeColor opacity strokeWidth comp;
 
@@ -300,7 +299,7 @@ let drawSymbol (symbol:Symbol) (theme:ThemeType) (symbolType: SymbolType) =
                 [|{X=0;Y=H/2.}; {X=W;Y=H/2.}|]
             | BusCompare _ |BusCompare1 _-> 
                 [|{X=0;Y=0};{X=0;Y=H};{X=W*0.6;Y=H};{X=W*0.8;Y=H*0.7};{X=W;Y=H*0.7};{X=W;Y =H*0.3};{X=W*0.8;Y=H*0.3};{X=W*0.6;Y=0}|]
-            | Not | Nand | Nor | Xnor -> 
+            | Not | Nand _ | Nor _ | Xnor _ -> 
                 [|{X=0;Y=0};{X=0;Y=H};{X=W;Y=H};{X=W;Y=H/2.};{X=W+9.;Y=H/2.};{X=W;Y=H/2.-8.};{X=W;Y=H/2.};{X=W;Y=0}|]
             | DFF | DFFE | Register _ | RegisterE _ | ROM1 _ |RAM1 _ | AsyncRAM1 _ 
             | Counter _ | CounterNoEnable _ 

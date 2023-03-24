@@ -339,9 +339,9 @@ let getComponentLegend (componentType:ComponentType) (rotation:Rotation) (symbol
         | Old -> ""
         | New ->  
             match componentType with
-            | And | Nand-> "&"
-            | Or | Nor-> "≥1"
-            | Xor | Xnor -> "=1"
+            | And _ | Nand _-> "&"
+            | Or _| Nor _-> "≥1"
+            | Xor _ | Xnor _ -> "=1"
             | Not -> "1"
             | Decode4 -> "Decode"
             | NbitsAdder n | NbitsAdderNoCin n
@@ -604,7 +604,7 @@ let getComponentProperties (compType:ComponentType) (label: string)=
         failwithf "What? Legacy RAM component types should never occur"
     | Input _ ->
         failwithf "Legacy Input component types should never occur"
-    | And | Or | Nand | Nor | Xor | Xnor ->  (2 , 1, 1.5*gS , 1.5*gS) 
+    | And n | Or n | Nand n | Nor n | Xor n | Xnor n ->  (n.Value , 1, 1.5*gS , 1.5*gS) //HLP23 Hannah Shewan
     | Not -> ( 1 , 1, 1.0*gS ,  1.0*gS) 
     | Input1 _ -> ( 0 , 1, gS ,  2.*gS)                
     | ComponentType.Output (a) -> (  1 , 0, gS ,  2.*gS) 
