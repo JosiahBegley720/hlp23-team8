@@ -22,4 +22,4 @@ The following features are implemented:
 
 ## SmartRendering - Hannah Shewan
 * All gates viewed in IEEE form
-* User can input up to 4 bits for all logic gates, except NOT
+* User can input up to 4 bits for all logic gates, except NOT. Port repositioning partially works.
