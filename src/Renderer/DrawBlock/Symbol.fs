@@ -298,7 +298,7 @@ let busSelectTitle (wob:int) (lsb:int) : string =
 ///Decodes the component type into component labels
 let getPrefix (compType:ComponentType) = 
     match compType with
-    | Not | And | Or | Xor | Nand | Nor | Xnor -> "G"
+    | Not | And _| Or _| Xor _| Nand _| Nor _| Xnor _ -> "G"
     | Mux2 -> "MUX"
     | Mux4 -> "MUX"
     | Mux8 -> "MUX"
@@ -332,36 +332,39 @@ let getPrefix (compType:ComponentType) =
     |_  -> ""
 
 
-
-// Text to be put inside different Symbols depending on their ComponentType
-let getComponentLegend (componentType:ComponentType) (rotation:Rotation) =
-    match componentType with
-    | And | Nand-> "&"
-    | Or | Nor-> "≥1"
-    | Xor | Xnor -> "=1"
-    | Not -> "1"
-    | Decode4 -> "Decode"
-    | NbitsAdder n | NbitsAdderNoCin n
-    | NbitsAdderNoCinCout n | NbitsAdderNoCout n -> busTitleAndBits "Adder" n
-    | Register n | RegisterE n-> 
-        match rotation with
-        |Degree90 |Degree270 -> busTitleAndBits "Reg" n
-        |_ -> busTitleAndBits "Register" n
-    | AsyncROM1 _ -> "Async.ROM"
-    | ROM1 _ -> "Sync.ROM"
-    | RAM1 _ -> "Sync.RAM"
-    | AsyncRAM1 _ -> "Async.RAM"
-    | DFF -> "DFF"
-    | DFFE -> "DFFE"
-    | Counter n |CounterNoEnable n
-    | CounterNoLoad n |CounterNoEnableLoad n -> busTitleAndBits "Counter" n
-    | NbitsXor (x)->   nBitsGateTitle "XOR" x
-    | NbitsOr (x)->   nBitsGateTitle "OR" x
-    | NbitsAnd (x)->   nBitsGateTitle "AND" x
-    | NbitsNot (x)->  nBitsGateTitle "NOT" x
-    | Shift (n,_,_) -> busTitleAndBits "Shift" n
-    | Custom x -> x.Name.ToUpper()
-    | _ -> ""
+//HLP23 Hannah Shewan
+///Legend required for all symbols, except IEEE symbols
+let getComponentLegend (componentType:ComponentType) (rotation:Rotation) (symbolType: SymbolType) =
+    match symbolType with
+        | Old -> ""
+        | New ->  
+            match componentType with
+            | And _ | Nand _-> "&"
+            | Or _| Nor _-> "≥1"
+            | Xor _ | Xnor _ -> "=1"
+            | Not -> "1"
+            | Decode4 -> "Decode"
+            | NbitsAdder n | NbitsAdderNoCin n
+            | NbitsAdderNoCinCout n | NbitsAdderNoCout n -> busTitleAndBits "Adder" n
+            | Register n | RegisterE n-> 
+                match rotation with
+                |Degree90 |Degree270 -> busTitleAndBits "Reg" n
+                |_ -> busTitleAndBits "Register" n
+            | AsyncROM1 _ -> "Async.ROM"
+            | ROM1 _ -> "Sync.ROM"
+            | RAM1 _ -> "Sync.RAM"
+            | AsyncRAM1 _ -> "Async.RAM"
+            | DFF -> "DFF"
+            | DFFE -> "DFFE"
+            | Counter n |CounterNoEnable n
+            | CounterNoLoad n |CounterNoEnableLoad n -> busTitleAndBits "Counter" n
+            | NbitsXor (x)->   nBitsGateTitle "XOR" x
+            | NbitsOr (x)->   nBitsGateTitle "OR" x
+            | NbitsAnd (x)->   nBitsGateTitle "AND" x
+            | NbitsNot (x)->  nBitsGateTitle "NOT" x
+            | Shift (n,_,_) -> busTitleAndBits "Shift" n
+            | Custom x -> x.Name.ToUpper()
+            | _ -> ""
 
 // Input and Output names of the ports depending on their ComponentType
 let portNames (componentType:ComponentType)  = //(input port names, output port names)
@@ -601,7 +604,7 @@ let getComponentProperties (compType:ComponentType) (label: string)=
         failwithf "What? Legacy RAM component types should never occur"
     | Input _ ->
         failwithf "Legacy Input component types should never occur"
-    | And | Or | Nand | Nor | Xor | Xnor ->  (2 , 1, 1.5*gS , 1.5*gS) 
+    | And n | Or n | Nand n | Nor n | Xor n | Xnor n ->  (n.Value , 1, 1.5*gS , 1.5*gS) //HLP23 Hannah Shewan
     | Not -> ( 1 , 1, 1.0*gS ,  1.0*gS) 
     | Input1 _ -> ( 0 , 1, gS ,  2.*gS)                
     | ComponentType.Output (a) -> (  1 , 0, gS ,  2.*gS) 

@@ -38,7 +38,7 @@ open Symbol
 let addText (pos: XYPos) name alignment weight size =
     let text =
             {defaultText with TextAnchor = alignment; FontWeight = weight; FontSize = size}
-    [makeText pos.X pos.Y name text]
+    [makeText pos.X pos.Y name text] 
 
 /// Add one or two lines of text, two lines are marked by a . delimiter
 let addLegendText (pos: XYPos) (name:string) alignment weight size =
@@ -177,33 +177,39 @@ let rotatePoints (points) (centre:XYPos) (transform:STransform) =
     |> flipIfNecessary
     |> relativeToTopLeft
 
-///create symbols in IEEE form
-let create_component (comp:Component) (colour:string) (outlineColour:string) (opacity:float) (strokeWidth:string) (points:string) (strokeColor: string) (symbolType)= 
+///Create each component in IEEE or New Box form, as determined by input parameter symbolType
+let createComponent (comp:Component) (colour:string) (outlineColour:string) (opacity:float) (strokeWidth:string) (points:string) (strokeColor: string) (symbolType: SymbolType) : ReactElement List= 
     let parameters:Path = {Stroke = "Black" ; StrokeWidth = strokeWidth; StrokeDashArray = ""; StrokeLinecap = "round"; Fill = colour}
+    
     match symbolType with
-    //| OldSymbol -> createBiColorPolygon points colour strokeColor opacity strokeWidth comp;
-    | _ ->     
+    | New -> createBiColorPolygon points colour strokeColor opacity strokeWidth comp;
+    | Old ->     
         match comp.Type with 
-        |And -> [makePolygon ($"0,0 20, 0 20, {comp.H} 0, {comp.H}") {defaultPolygon with Fill = parameters.Fill};
-                makeAnyPath {X = 20; Y=0} (makeLineAttr 0 comp.H) {parameters with Stroke = parameters.Fill; StrokeWidth = "1.5px"};
-                makeAnyPath {X = 20; Y = comp.H} (makePartArcAttr 5.0 -20.0 -20.0 25.0 20.0) parameters;
-                ]
-        |Nand -> [makePolygon ($"0,0 20,0 20,{comp.H} 0,{comp.H}") {defaultPolygon with Fill = parameters.Fill};
-                makeAnyPath {X = 20; Y=0} (makeLineAttr 0 comp.H) {parameters with Stroke = parameters.Fill; StrokeWidth = "1.5px"};
-                makeAnyPath {X = 20; Y = comp.H} (makePartArcAttr 5.0 -20.0 -20.0 25.0 20.0) parameters;
-                makeCircle (20.0 + 26.0) (comp.H/2.0) {defaultCircle with R = 3; Fill = parameters.Fill};
-                ]
-        |Not -> [makePolygon ($"0,20 30,0 0,-20") {defaultPolygon with Fill=parameters.Fill};
-                makeCircle 34.0 0.0 {defaultCircle with R=4; Fill=parameters.Fill}] //to do : move label 
-        |Or -> [makeAnyPath {X = 0; Y = comp.H} (makeOrShape 20.0 40.0 15.0 30.0) parameters];
-        |Nor -> [makeAnyPath {X = 0; Y = comp.H} (makeOrShape 20.0 40.0 15.0 30.0) parameters;
-                 makeCircle 26 (comp.H/2.0) {defaultCircle with R = 3; Fill=parameters.Fill}]
-        |Xor -> [makeAnyPath {X = 0; Y = comp.H} (makeOrShape 20.0 40.0 15.0 30.0) parameters;
-                makeAnyPath {X = -5; Y= 0} (makePartArcAttr 40.0 0.0 2.0 (5.0 - comp.H) -1.0) {parameters with Fill = "None"; StrokeWidth = "1.5px"}]
-        |Xnor -> [makeAnyPath {X = 0; Y = comp.H} (makeOrShape 20.0 40.0 15.0 30.0) parameters;
-                makeAnyPath {X = -5; Y= 0} (makePartArcAttr 40.0 0.0 2.0 (5.0 - comp.H) -1.0) {parameters with Fill = "None"; StrokeWidth = "1.5px"};
-                makeCircle 26 (comp.H/2.0) {defaultCircle with R=3 ; Fill = parameters.Fill}]
-        | _ -> createBiColorPolygon points colour strokeColor opacity strokeWidth comp;
+        |And n ->  [makePolygon ($"0,0 20, 0 20, {comp.H} 0, {comp.H}") {defaultPolygon with Fill = parameters.Fill};
+                 makeAnyPath {X = 20; Y=0} (makeLineAttr 0 comp.H) {parameters with Stroke = parameters.Fill; StrokeWidth = "1.5px"};
+                 makeAnyPath {X = 20; Y = comp.H} (makePartArcAttr 5.0 -20.0 -20.0 25.0 20.0) parameters;]
+
+        |Nand n -> [makePolygon ($"0,0 20,0 20,{comp.H} 0,{comp.H}") {defaultPolygon with Fill = parameters.Fill};
+                 makeAnyPath {X = 20; Y=0} (makeLineAttr 0 comp.H) {parameters with Stroke = parameters.Fill; StrokeWidth = "1.5px"};
+                 makeAnyPath {X = 20; Y = comp.H} (makePartArcAttr 5.0 -20.0 -20.0 25.0 20.0) parameters;
+                 makeCircle (20.0 + 26.0) (comp.H/2.0) {defaultCircle with R = 3; Fill = parameters.Fill};]
+
+        |Not ->  [makePolygon ($"0,35 30,15 0,-5") {defaultPolygon with Fill=parameters.Fill};
+                 makeCircle 34.0 15.0 {defaultCircle with R=4; Fill=parameters.Fill}]  
+
+        |Or n ->  [makeOr parameters];
+
+        |Nor n -> [makeOr parameters;
+                  makeCircle 50 23 {defaultCircle with R = 3; Fill=parameters.Fill}] 
+
+        |Xor n -> [makeOr parameters;
+                  makeAnyPath {X = -15.0; Y= 3.0} ($"C-5 23 -5 23 -15 43") {parameters with Fill = "None"; StrokeWidth = "1.5px"};]
+                   
+        |Xnor n -> [makeOr parameters;
+                   makeAnyPath {X = -15.0; Y= 3.0} ($"C-5 23 -5 23 -15 43") {parameters with Fill = "None"; StrokeWidth = "1.5px"};
+                   makeCircle 50 23 {defaultCircle with R = 3; Fill=parameters.Fill}]
+
+        | _ ->   createBiColorPolygon points colour strokeColor opacity strokeWidth comp;
 
 //--------------------------------------------------------------------------------------------//
 //--------------------------------------- SYMBOL DRAWING -------------------------------------//
@@ -211,7 +217,7 @@ let create_component (comp:Component) (colour:string) (outlineColour:string) (op
 
 /// Draw symbol (and its label) using theme for colors, returning a list of React components 
 /// implementing all of the text and shapes needed.
-let drawSymbol (symbol:Symbol) (theme:ThemeType) =
+let drawSymbol (symbol:Symbol) (theme:ThemeType) (symbolType: SymbolType) =
     let appear = symbol.Appearance
     let colour = appear.Colour
     let showPorts = appear.ShowPorts
@@ -293,7 +299,9 @@ let drawSymbol (symbol:Symbol) (theme:ThemeType) =
                 [|{X=0;Y=H/2.}; {X=W;Y=H/2.}|]
             | BusCompare _ |BusCompare1 _-> 
                 [|{X=0;Y=0};{X=0;Y=H};{X=W*0.6;Y=H};{X=W*0.8;Y=H*0.7};{X=W;Y=H*0.7};{X=W;Y =H*0.3};{X=W*0.8;Y=H*0.3};{X=W*0.6;Y=0}|]
-            | Not | Nand | Nor | Xnor -> 
+            | Not -> //HLP23 Hannah Shewan
+                [|{X=0;Y=20};{X=0;Y=(-20)};{X=30;Y=0}|]
+            | Nand _ | Nor _ | Xnor _ -> 
                 [|{X=0;Y=0};{X=0;Y=H};{X=W;Y=H};{X=W;Y=H/2.};{X=W+9.;Y=H/2.};{X=W;Y=H/2.-8.};{X=W;Y=H/2.};{X=W;Y=0}|]
             | DFF | DFFE | Register _ | RegisterE _ | ROM1 _ |RAM1 _ | AsyncRAM1 _ 
             | Counter _ | CounterNoEnable _ 
@@ -441,9 +449,6 @@ let drawSymbol (symbol:Symbol) (theme:ThemeType) =
                     let c' = c - symbol.Pos
                     makeCircle (c'.X) (c'.Y) {defaultCircle with R=3.})
             text :: corners
-
-
-
  
             
     let labelcolour = outlineColor symbol.Appearance.Colour
@@ -477,16 +482,16 @@ let drawSymbol (symbol:Symbol) (theme:ThemeType) =
     (drawPorts PortType.Output comp.OutputPorts showPorts symbol)
     |> List.append (drawPorts PortType.Input comp.InputPorts showPorts symbol)
     |> List.append (drawPortsText (comp.InputPorts @ comp.OutputPorts) (portNames comp.Type) symbol)
-    |> List.append (addLegendText 
+    |> List.append (addLegendText
                         (legendOffset w h symbol) 
-                        (getComponentLegend comp.Type transform.Rotation) 
+                        (getComponentLegend comp.Type transform.Rotation symbolType)
                         "middle" 
                         "bold" 
                         (legendFontSize comp.Type))
     |> List.append (addComponentLabel comp transform labelcolour)
     |> List.append (additions)
     |> List.append (drawMovingPortTarget symbol.MovingPortTarget symbol points)
-    |> List.append (create_component comp colour outlineColour opacity strokeWidth points colour "asd")
+    |> List.append (createComponent comp colour outlineColour opacity strokeWidth points colour symbolType)
 
 //----------------------------------------------------------------------------------------//
 //---------------------------------View Function for Symbols------------------------------//
@@ -498,6 +503,7 @@ type private RenderSymbolProps =
         Dispatch : Dispatch<Msg>
         key: string
         Theme: ThemeType
+        SymbolType : SymbolType
     }
 
 /// View for one symbol. Using FunctionComponent.Of to improve efficiency 
@@ -510,7 +516,7 @@ let private renderSymbol =
             let ({X=fX; Y=fY}:XYPos) = symbol.Pos
             let appear = symbol.Appearance
             g ([ Style [ Transform(sprintf $"translate({fX}px, {fY}px)") ] ]) 
-                (drawSymbol props.Symbol props.Theme)
+                (drawSymbol props.Symbol props.Theme props.SymbolType)
             
         , "Symbol"
         , equalsButFunctions
@@ -552,6 +558,7 @@ let view (model : Model) (dispatch : Msg -> unit) =
                 Dispatch = dispatch
                 key = id
                 Theme = model.Theme
+                SymbolType = model.SymbolType 
             }
     )
     |> ofList
@@ -562,5 +569,5 @@ let init () =
     { 
         Symbols = Map.empty; CopiedSymbols = Map.empty
         Ports = Map.empty ; InputPortsConnected= Set.empty
-        OutputPortsConnected = Map.empty; Theme = Colourful
+        OutputPortsConnected = Map.empty; Theme = Colourful ; SymbolType = Old
     }, Cmd.none

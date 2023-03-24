@@ -409,7 +409,7 @@ type Msg =
     | ExecFuncAsynch of (Unit -> Elmish.Cmd<Msg>)
     | ExecCmdAsynch of Elmish.Cmd<Msg>
     | SendSeqMsgAsynch of seq<Msg>
-
+    | SetSymbolTypeUserData of DrawModelType.SymbolT.SymbolType
 
 //================================//
 // Componenents loaded from files //
@@ -432,6 +432,7 @@ type UserData = {
     ArrowDisplay: bool
     WireType: DrawModelType.BusWireT.WireType
     Theme: DrawModelType.SymbolT.ThemeType
+    SymbolType: DrawModelType.SymbolT.SymbolType 
     }
 
 type SpinnerState =

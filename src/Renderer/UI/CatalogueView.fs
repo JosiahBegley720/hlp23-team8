@@ -38,7 +38,7 @@ let private menuItem styles label onClick =
         [ str label ]
 
 let private createComponent compType label model dispatch =
-    Sheet (SheetT.InitialiseCreateComponent (tryGetLoadedComponents model, compType, label)) |> dispatch
+    Sheet (SheetT.InitialiseCreateComponent (tryGetLoadedComponents model, compType , label)) |> dispatch
 
 // Anything requiring a standard label should be checked and updated with the correct number suffix in Symbol/Sheet, 
 // so give the label ""
@@ -210,7 +210,27 @@ let createSheetDescriptionPopup (model:Model) previousDescr sheetName dispatch =
             false  //allow all
     dialogPopup title body buttonText buttonAction isDisabled [] dispatch
 
-let private createNbitsAdderPopup (model:Model) dispatch =
+let private createNbitsGatePopup (comp: ComponentType) (model: Model) dispatch =
+    let title = sprintf "a logic gate with  n-bit input"
+    let beforeInt =
+        fun _ -> str "How many bits should each gate take? Please select up to 4."
+    let intDefault = model.LastUsedDialogWidth
+    let body = dialogPopupBodyOnlyInt beforeInt intDefault dispatch
+    let buttonText = "Gate"
+    let buttonAction =
+        fun (dialogData : PopupDialogData) ->
+            let inputInt = match (getInt dialogData) > 4  with
+                            | true -> 2
+                            | false -> getInt dialogData
+            //printfn "creating adder %d" inputInt
+            createComponent (setNumBinaryGateInputs inputInt comp) "" {model with LastUsedDialogWidth = inputInt} dispatch 
+            dispatch ClosePopup
+    let isDisabled =
+        fun (dialogData : PopupDialogData) -> getInt dialogData < 1
+    dialogPopup title body buttonText buttonAction isDisabled [] dispatch 
+
+
+let private createNBitsAdderPopup (model:Model) dispatch =
     let title = sprintf "Add N bits adder"
     let beforeInt =
         fun _ -> str "How many bits should each operand have?"
@@ -825,12 +845,12 @@ let viewCatalogue model dispatch =
                     makeMenuGroup
                         "Gates"
                         [ catTip1 "Not"  (fun _ -> createCompStdLabel Not model dispatch) "Invertor: output is negation of input"
-                          catTip1 "And"  (fun _ -> createCompStdLabel And model dispatch) "Output is 1 if both the two inputs are 1"
-                          catTip1 "Or"   (fun _ -> createCompStdLabel Or model dispatch) "Output is 1 if either of the two inputs are 1"
-                          catTip1 "Xor"  (fun _ -> createCompStdLabel Xor model dispatch) "Output is 1 if the two inputs have different values"
-                          catTip1 "Nand" (fun _ -> createCompStdLabel Nand model dispatch) "Output is 0 if both the two inputs are 1"
-                          catTip1 "Nor"  (fun _ -> createCompStdLabel Nor model dispatch) "Output is 0 if either of the two inputs are 1"
-                          catTip1 "Xnor" (fun _ -> createCompStdLabel Xnor model dispatch) "Output is 1 if the two inputs have the same values"]
+                          catTip1 "And"  (fun _ -> createNbitsGatePopup (And None) model dispatch) "Output is 1 if all the inputs are 1"
+                          catTip1 "Or"   (fun _ -> createNbitsGatePopup (Or None) model dispatch) "Output is 1 if any of the inputs are 1"
+                          catTip1 "Xor"  (fun _ -> createNbitsGatePopup (Xor None) model dispatch) "Output is 1 if exactly one of thinput is 1"
+                          catTip1 "Nand" (fun _ -> createNbitsGatePopup (Nand None) model dispatch) "Output is 0 if all of the inputs are 1"
+                          catTip1 "Nor"  (fun _ -> createNbitsGatePopup (Nor None) model dispatch) "Output is 0 if any of the inputs are 1"
+                          catTip1 "Xnor" (fun _ -> createNbitsGatePopup (Xnor None) model dispatch) "Output is 1 if exactly one input is 1"]
                     makeMenuGroup
                         "Mux / Demux"
                         [ catTip1 "2-Mux" (fun _ -> createCompStdLabel Mux2 model dispatch) <| muxTipMessage "two"
@@ -841,7 +861,7 @@ let viewCatalogue model dispatch =
                           catTip1 "8-Demux" (fun _ -> createCompStdLabel Demux8 model dispatch)  <| deMuxTipMessage "eight" ]
                     makeMenuGroup
                         "Arithmetic"
-                        [ catTip1 "N bits adder" (fun _ -> createNbitsAdderPopup model dispatch) "N bit Binary adder with carry in to bit 0 and carry out from bit N-1"
+                        [ catTip1 "N bits adder" (fun _ -> createNBitsAdderPopup model dispatch) "N bit Binary adder with carry in to bit 0 and carry out from bit N-1"
                           catTip1 "N bits XOR" (fun _ -> createNbitsXorPopup model dispatch) "N bit XOR gates - use to make subtractor or comparator"
                           catTip1 "N bits AND" (fun _ -> createNbitsAndPopup model dispatch) "N bit AND gates"
                           catTip1 "N bits OR" (fun _ -> createNbitsOrPopup model dispatch) "N bit OR gates"
