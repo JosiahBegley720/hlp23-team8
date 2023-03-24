@@ -1,10 +1,12 @@
 ﻿module SmartPortOrder
 open SymbolUpdate
+open SmartWire
 open CommonTypes
 open SmartHelpers
 open DrawModelType
 open DrawModelType.SymbolT
 open DrawModelType.BusWireT
+open BusWireUpdateHelpers
 open Optics
 open Operators
 
@@ -76,8 +78,21 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
         |> List.ofSeq
         |> sortList
         |> List.sortBy fst
-
-
+    
+    //calculates the wires needed tobe updated, and passes them through smartAutoRoute 
+    let wires = 
+            [ [symbolToOrder.Id]; [otherSymbol.Id] ]
+            |> List.map (getConnectedWires wModel)
+            |> (fun lst -> Set.intersect ((List.head lst) |> Set) ((List.head (List.tail lst)) |> Set))
+            |> Set.toList
+    let updateWires =
+        wModel.Wires
+        |> Map.toList
+        |> List.map(fun (x,y) -> match List.contains y wires with
+                            | true -> (x,smartAutoroute wModel y)
+                            | false -> x,y)
+        |> Map.ofList
+            
     let maps = [(getConnectedNumbers ((getSymbolPortMap otherSymbol)[1]) ((getSymbolPortMap symbolToOrder)[0]) portConnections)|> List.sortByDescending fst;
                 (getConnectedNumbers ((getSymbolPortMap symbolToOrder)[1]) ((getSymbolPortMap otherSymbol)[0]) portConnections)|> List.sortByDescending snd ]
     match otherSymbol.Component.Type, symbolToOrder.Component.Type with
@@ -129,7 +144,11 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
         let updatedPortMaps = { symbolToOrder.PortMaps with Order = updatedMapOrder }
         let symbol' = { symbolToOrder with PortMaps = updatedPortMaps }
         
-        { wModel with Symbol = { sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols } } //model updated with updated symbol with updated port map
+        // returns updated model
+        { wModel with
+            Wires = updateWires
+            Symbol = {sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols}
+        }
         
     | Custom _, And|Custom _,Or|Custom _,Xor|Custom _,Nand|Custom _,Nor|Custom _,Xnor |Custom _,NbitsAdder _|Custom _,NbitsAdderNoCout _|Custom _,NbitsXor _|Custom _,NbitsAnd _|Custom _,NbitsOr _->
         // port reordering of standard components
@@ -144,13 +163,17 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
             | Some x :: None :: tail -> isMonotonicallyIncreasing (Some x :: tail)
             | _ -> false
 
-            
         let increasingCheck = isMonotonicallyIncreasing (maps[0] |> List.map (fun (_,x) -> x))
+        
+        // determines whether flipping the component is beneficial based on heuristic above
         let symbol' = match increasingCheck with
                         | true -> symbolToOrder
                         | false -> flipSymbol FlipVertical symbolToOrder
                         
-        {wModel with Symbol = { sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols } }
+        { wModel with
+            Wires = updateWires
+            Symbol = {sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols}
+        }
         
     | Custom _, Mux2| Custom _, Mux4| Custom _, Mux8 ->
         // port reordering of Mux components
@@ -172,6 +195,10 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
         let symbol' = match (penalty < ((maps[0]|> List.filter (fun (_,x) -> x <> None)).Length/2)) with
                         | true -> symbolToOrder
                         | false -> flipSymbol FlipVertical symbolToOrder
-        {wModel with Symbol = { sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols } }
+        
+        { wModel with
+            Wires = updateWires
+            Symbol = {sModel with Symbols = Map.add symbol'.Id symbol' sModel.Symbols}
+        }
         
     | _,_ -> wModel

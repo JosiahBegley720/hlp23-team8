@@ -202,6 +202,19 @@ let getMinMaxDistOfBBfromXYPosPair (model:Model) (xyPosPair: XYPos * XYPos) =
                                     |A, B -> ((min A (bb.TopLeft.X - xyPosPairXmin)), (max B (bb.TopLeft.X + bb.W - xyPosPairXmin)))))
                     (0.0,0.0)
                     
+/// Returns the map of wires that are connected to a list of components given as inputs, useful for port information and wire routing
+/// HLP23: AUTHOR Josiah
+let getConnectedWireMap (model: Model) compIds: Map<'a,Wire>=
+    let inputPorts, outputPorts =
+        Symbol.getPortLocations model.Symbol compIds
+
+    let containsPorts wireId wire =
+        Map.containsKey wire.InputPort inputPorts
+        || Map.containsKey wire.OutputPort outputPorts
+
+    model.Wires |> Map.filter (fun wireId wire -> containsPorts wireId wire)
+
+
 (*Given two components, this helper function returns a tuple list containing the port connection mapping between the two symbols. Of the form
 [(a,b);(c,d);(e,f)] where a,b,c,d,e,f are port numbers options. In the case a port has no connections it is represented as None and will be printed in the form
 [(a,);(c,d);(e,)] in the case that a and e have no connections*)
