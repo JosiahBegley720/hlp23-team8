@@ -18,3 +18,7 @@ The following features are implemented:
 	* heuristic 1: Strickly increasing port numbers
 	* heuristic 2: If flipping a components will not result in removing all wire crossing, flipping is conducted instead to minimise wire crossing based on a penalty heuristic
 * feature - After symbol adjustments, wires are updated using smartAutoRoute
+
+## SmartRendering - Hannah Shewan
+* feature all gates in IEEE form
+* n bit inputs, up to 4
