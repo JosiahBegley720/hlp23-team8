@@ -215,6 +215,12 @@ let smartRouteSegments2 model (segments: Segment list) startPos initialOrientati
     (segments, (sortedIndex))
     ||> List.fold (fun segs i -> smartRouteSegment2 model segs startPos initialOrientation 15 i)  
 
+/// helper
+let getConnectedWiresByOutputPort model outPort =
+        let wireList = getWireList model
+        wireList
+        |> List.filter (fun (w: Wire) -> w.OutputPort = outPort)
+        
 /// top-level function which replaces autoupdate and implements a smarter version of same
 /// it is called every time a new wire is created, so is easily tested.
 
