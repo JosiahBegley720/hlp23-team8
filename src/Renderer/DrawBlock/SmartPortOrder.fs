@@ -95,6 +95,7 @@ let reOrderPorts (wModel: BusWireT.Model) (symbolToOrder: Symbol) (otherSymbol: 
             
     let maps = [(getConnectedNumbers ((getSymbolPortMap otherSymbol)[1]) ((getSymbolPortMap symbolToOrder)[0]) portConnections)|> List.sortByDescending fst;
                 (getConnectedNumbers ((getSymbolPortMap symbolToOrder)[1]) ((getSymbolPortMap otherSymbol)[0]) portConnections)|> List.sortByDescending snd ]
+    
     match otherSymbol.Component.Type, symbolToOrder.Component.Type with
     | _, Custom _->
         // port reordering of custom components
