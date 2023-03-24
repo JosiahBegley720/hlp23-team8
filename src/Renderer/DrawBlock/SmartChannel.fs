@@ -54,7 +54,6 @@ let smartChannelRoute
                 List.length wire.Segments = 5 && wire.Segments[3].Mode = Manual) then
             false
         else
-            //printfn $"no. of segs {List.length wire.Segments}"
             match wireIntersectsBoundingBox wire channel with
             | None -> false
             | Some x -> true
@@ -74,7 +73,6 @@ let smartChannelRoute
     let orientedWiresList = 
 
         let wireOrientation (cid,wire) = 
-
             getAbsoluteSegmentPos wire 3
             |> (fun (st,en) -> getSegmentOrientation st en) //Retrieve 3rd segment orientation
             |> function
@@ -93,7 +91,7 @@ let smartChannelRoute
         |Vertical -> snd orientedWiresList
         |Horizontal -> fst orientedWiresList
 
-    //Calculates current deviation of each wire's mid segment from desired position, then calls moveSegment to correct it
+    ///List of wires after initial even spacing
     let shiftedWiresList =
         //Setup desired wire positions
         let wireSpacing = 
@@ -111,9 +109,7 @@ let smartChannelRoute
             |Vertical -> (fst x).X
             |Horizontal -> (fst x).Y
 
-        //printfn $"selectedWires length: {List.length selectedWires}"
-        //List.map (fun (x,y) -> printf $"selected id {x}") selectedWires |> ignore
-
+        //Calculates current deviation of each wire's mid segment from desired position, then calls moveSegment to correct it
         selectedWiresList
         |> List.map (fun (cid,wire) -> getAbsoluteSegmentPos wire 3)
         |> List.map getOrientedAxisValue
@@ -166,10 +162,10 @@ let smartChannelRoute
                 let w22 = fst (getAbsoluteSegmentPos w2 2)
                 let w24 = fst (getAbsoluteSegmentPos w2 4)  
 
+                //Different conditions depending on wire direction
                 let overlapCondition = 
                     match channelOrientation with
                     | Vertical -> 
-                        //if 2.X is less than 4?
                         let w1Dir = sign (w14.X - w12.X)//pos if left to right, neg if right to left
                         let w2Dir = sign (w24.X - w22.X)
 
@@ -203,7 +199,6 @@ let smartChannelRoute
             let index = List.tryFindIndex overlapPredicate wireList
 
             let fullList = [cidWire1]@wireList
-            printfn $"fullList length {List.length fullList}"
 
             index
             |> function
@@ -219,20 +214,19 @@ let smartChannelRoute
             | Some (hd::tl) -> 
                 switchCompareSinglePass updatedModel hd tl
                 |> function
-                | Some x-> Some(x) //Switched
+                | Some x-> Some(x) //Switched, so stop and return
                 | None -> 
-                    //printfn $"we didnt switch"
                     scanAndSwitchList updatedModel (Some(tl))
                     |> function
                     | None -> None //we've tested the whole list, no switches, we return None
-                    | Some(x) -> Some([hd] @ x) //no switch? -> go deeper and append result to current head
+                    | Some(x) -> Some([hd] @ x) //no switch -> go deeper and append result to current head
 
             | None -> raise (System.ApplicationException("Infinite recursion in wire switching")) // really won't happen, make compiler happy
             | Some ([]) -> None //won't happen, make compiler happy
 
         ///Take list of 7-seg wires, returns switched list of wires to minimise overlap
         let rec minimiseOverlap updatedModel depth (wires: (ConnectionId*Wire) list option)  = 
-            printfn $"depth: {depth}"
+
             if (depth < 1.0) then
                 wires
             else
@@ -241,6 +235,7 @@ let smartChannelRoute
                     //adjust model with new switched wires
                     let tmpModel = {updatedModel with Wires = Map.ofList x}
                     minimiseOverlap tmpModel (depth-1.0) (Some (x)) 
+
                 | None -> wires //No switch in the pass, we can stop
 
         let maxDepth = (2.0** (float (List.length shiftedWiresList)))
@@ -248,9 +243,6 @@ let smartChannelRoute
         Some(shiftedWiresList)
         |> minimiseOverlap {model with Wires = Map.ofList shiftedWiresList} maxDepth
         |> Option.defaultValue shiftedWiresList
-
-    printfn $"minOverlapShiftedWiresList {List.length minOverlapShiftedWiresList}"
-    List.map (fun (x,y) -> printf $"id: {x}") minOverlapShiftedWiresList |> ignore
             
     let allWiresMap = 
         minOverlapShiftedWiresList  @ unSelectedWiresList @ (snd allWiresList) 
