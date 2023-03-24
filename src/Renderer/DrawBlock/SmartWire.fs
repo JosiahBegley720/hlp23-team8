@@ -220,7 +220,56 @@ let getConnectedWiresByOutputPort model outPort =
         let wireList = getWireList model
         wireList
         |> List.filter (fun (w: Wire) -> w.OutputPort = outPort)
+
+/// sub-function that implements unhugging of wires from the same output port
+let rec unhugSegment model (wire: Wire) (segOP: Segment list option) segDef lim =
+    if wire.InitialOrientation = Vertical then segOP
+    else
+        let seg = match segOP with
+                                |Some x -> x
+                                |None -> segDef
         
+        let initWid = wire.WId
+        let notMainWire w = w.WId <> initWid
+        let segLens = seg |> List.map (fun s -> s.Length)
+        let getSegmentsLen segs = segs |> List.map (fun seg -> seg.Length)
+        let hugWires = 
+            getConnectedWiresByOutputPort model wire.OutputPort 
+            |> List.filter notMainWire
+        let normaliseTwoSegmentsLen (lstA: float list) (lstB: float list) =
+            let lst1, lst2 =   
+                if lstA.Length = lstB.Length then lstA, lstB
+                elif lstA.Length > lstB.Length then lstA, lstB@[1.0..(float)(lstA.Length-lstB.Length)]
+                else lstA, List.take (lstA.Length) lstB
+            lst1, lst2
+        let findHugIdxShift (flt1, flt2) minLstLen =
+            printf $"{minLstLen}"
+            let flt = (flt1, flt2) ||> List.map2 (fun (x: float) (y: float) -> x - y)
+            let newflt = flt |> List.removeManyAt 0 2
+            let idx = newflt |> List.findIndex (fun f -> f < 2.0 && f > -2.0)
+            printf $"idx = {newflt[idx]}"
+            match idx, newflt[idx + 1] < 0 with
+            |i,_ when i > minLstLen - 5 -> idx + 2, 0.0
+            |_, true -> idx + 3, -3.0
+            |_, false -> idx + 3, 3.0
+        
+
+        if hugWires = [] && lim <> 0 then segOP
+        elif hugWires = [] && lim = 0 then None
+        else
+            hugWires
+            |> List.map (fun w -> w.Segments)
+            |> List.map getSegmentsLen
+            |> List.fold (fun inSop el -> 
+                            match inSop with
+                            | Some inS ->
+                                let a,b = findHugIdxShift(normaliseTwoSegmentsLen segLens el) (min seg.Length el.Length)
+                                match a, b with
+                                    |_,-3.0 -> unhugSegment model wire (Some (autoMoveSegment inS a -3.0)) segDef (lim-1)
+                                    |_, 3.0 -> unhugSegment model wire (Some (autoMoveSegment inS a 3.0)) segDef (lim-1)
+                                    |_,_ -> Some inS
+                            | None -> None) segOP
+
 /// top-level function which replaces autoupdate and implements a smarter version of same
 /// it is called every time a new wire is created, so is easily tested.
 
