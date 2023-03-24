@@ -23,3 +23,13 @@ The following features are implemented:
 ## SmartRendering - Hannah Shewan
 * All gates viewed in IEEE form
 * User can input up to 4 bits for all logic gates, except NOT. Port repositioning partially works.
+
+## SmartAutoroute - Rahimi Ridzal
+* feature - Implement solution for route round symbol problem
+* feature - Implement solution for hugging parallel segments from the same output port
+			Limitation: - there exists no solution result in the algorithm used thus it is limited to 5 attempts 
+						- segment will be default after 5 attempts without best solution
+						- to avoid infinite loop problem
+* feature - Implement best path for long signals. If clean segment (segment with no intersection with Bounding Boxes) is not possible, the closest possible solution is returned
+			Limitation: - limit is introduced to stop the function finding for optimal solution for cases where there is no solution
+
