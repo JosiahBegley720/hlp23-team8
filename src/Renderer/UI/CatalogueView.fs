@@ -213,13 +213,13 @@ let createSheetDescriptionPopup (model:Model) previousDescr sheetName dispatch =
 let private createNbitsGatePopup (comp: ComponentType) (model: Model) dispatch =
     let title = sprintf "a logic gate with  n-bit input"
     let beforeInt =
-        fun _ -> str "How many bits should each gate take? Please select up to 4."
+        fun _ -> str "How many bits should each gate take? Please select between 2 and 4."
     let intDefault = model.LastUsedDialogWidth
     let body = dialogPopupBodyOnlyInt beforeInt intDefault dispatch
     let buttonText = "Gate"
     let buttonAction =
         fun (dialogData : PopupDialogData) ->
-            let inputInt = match (getInt dialogData) > 4  with
+            let inputInt = match (((getInt dialogData) > 4) || ((getInt dialogData) < 2))  with
                             | true -> 2
                             | false -> getInt dialogData
             //printfn "creating adder %d" inputInt
