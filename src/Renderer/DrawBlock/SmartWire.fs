@@ -291,9 +291,13 @@ let smartAutoroute (model: Model) (wire: Wire): Wire =
     let newSegments = if smartSeg1StillIntersect && smartSeg2StillIntersect then smartSegments1
                                     elif smartSeg1StillIntersect then smartSegments2
                                     else smartSegments1
-    // printf $"{newSegments}"
+
+    let finalSegments = match (unhugSegment model wire (Some newSegments) segments 3) with
+                                |Some seg -> seg
+                                |None -> newSegments 
+
     { wire with
-          Segments = newSegments
+          Segments = finalSegments
           InitialOrientation = initialOrientation
           StartPos = startPos
     }

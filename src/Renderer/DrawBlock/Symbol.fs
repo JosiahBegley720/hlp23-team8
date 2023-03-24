@@ -813,12 +813,16 @@ let getPortPos (sym: Symbol) (port: Port) : XYPos =
         baseOffset' + {X = xOffset; Y = 0.0 }
 
 /// Gives the port positions to the render function, it gives the moving port pos where the mouse is, if there is a moving port
-let inline getPortPosToRender (sym: Symbol) (port: Port) : XYPos =
+let inline getPortPosToRender (sym: Symbol) (port: Port) (ieee:bool) : XYPos =
+    let offset :XYPos = match ieee with | false -> {X = 0.0 ; Y=0.0} 
+                                        | true ->  match port.PortType with 
+                                                |  CommonTypes.Input -> {X = 15.0 ; Y=0.0}
+                                                |  CommonTypes.Output -> {X = 0.0 ; Y=0.0}
     match sym.MovingPort with
-    | Some movingPort when port.Id = movingPort.PortId -> movingPort.CurrPos - sym.Pos
+    | Some movingPort when port.Id = movingPort.PortId -> movingPort.CurrPos - sym.Pos - offset
     | _ -> 
         //printfn "symbol %A portDimension %A" sym.Component.Type (getPortPos sym port)
-        getPortPos sym port
+        getPortPos sym port - offset
 
 let inline getPortPosModel (model: Model) (port:Port) =
     getPortPos (Map.find (ComponentId port.HostId) model.Symbols) port
