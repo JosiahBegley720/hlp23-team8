@@ -333,7 +333,7 @@ let getPrefix (compType:ComponentType) =
 
 
 //HLP23 Hannah Shewan
-// Text to be put inside different Symbols depending on their ComponentType
+///Legend required for all symbols, except IEEE symbols
 let getComponentLegend (componentType:ComponentType) (rotation:Rotation) (symbolType: SymbolType) =
     match symbolType with
         | Old -> ""

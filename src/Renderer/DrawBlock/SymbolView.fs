@@ -177,7 +177,7 @@ let rotatePoints (points) (centre:XYPos) (transform:STransform) =
     |> flipIfNecessary
     |> relativeToTopLeft
 
-///create symbols in IEEE form
+///Create each component in IEEE or New Box form, as determined by input parameter symbolType
 let createComponent (comp:Component) (colour:string) (outlineColour:string) (opacity:float) (strokeWidth:string) (points:string) (strokeColor: string) (symbolType: SymbolType) : ReactElement List= 
     let parameters:Path = {Stroke = "Black" ; StrokeWidth = strokeWidth; StrokeDashArray = ""; StrokeLinecap = "round"; Fill = colour}
     
@@ -185,26 +185,32 @@ let createComponent (comp:Component) (colour:string) (outlineColour:string) (opa
     | New -> createBiColorPolygon points colour strokeColor opacity strokeWidth comp;
     | Old ->     
         match comp.Type with 
-        |And -> [makePolygon ($"0,0 20, 0 20, {comp.H} 0, {comp.H}") {defaultPolygon with Fill = parameters.Fill};
-                makeAnyPath {X = 20; Y=0} (makeLineAttr 0 comp.H) {parameters with Stroke = parameters.Fill; StrokeWidth = "1.5px"};
-                makeAnyPath {X = 20; Y = comp.H} (makePartArcAttr 5.0 -20.0 -20.0 25.0 20.0) parameters;
-                ]
+        |And ->  [makePolygon ($"0,0 20, 0 20, {comp.H} 0, {comp.H}") {defaultPolygon with Fill = parameters.Fill};
+                 makeAnyPath {X = 20; Y=0} (makeLineAttr 0 comp.H) {parameters with Stroke = parameters.Fill; StrokeWidth = "1.5px"};
+                 makeAnyPath {X = 20; Y = comp.H} (makePartArcAttr 5.0 -20.0 -20.0 25.0 20.0) parameters;]
+
         |Nand -> [makePolygon ($"0,0 20,0 20,{comp.H} 0,{comp.H}") {defaultPolygon with Fill = parameters.Fill};
-                makeAnyPath {X = 20; Y=0} (makeLineAttr 0 comp.H) {parameters with Stroke = parameters.Fill; StrokeWidth = "1.5px"};
-                makeAnyPath {X = 20; Y = comp.H} (makePartArcAttr 5.0 -20.0 -20.0 25.0 20.0) parameters;
-                makeCircle (20.0 + 26.0) (comp.H/2.0) {defaultCircle with R = 3; Fill = parameters.Fill};
-                ]
-        |Not -> [makePolygon ($"0,20 30,0 0,-20") {defaultPolygon with Fill=parameters.Fill};
-                makeCircle 34.0 0.0 {defaultCircle with R=4; Fill=parameters.Fill}]  
-        |Or -> [makeOr parameters];
-        |Nor -> [makeOr parameters;
-                 makeCircle 58 20 {defaultCircle with R = 3; Fill=parameters.Fill}]
-        |Xor -> [makeOr parameters;
+                 makeAnyPath {X = 20; Y=0} (makeLineAttr 0 comp.H) {parameters with Stroke = parameters.Fill; StrokeWidth = "1.5px"};
+                 makeAnyPath {X = 20; Y = comp.H} (makePartArcAttr 5.0 -20.0 -20.0 25.0 20.0) parameters;
+                 makeCircle (20.0 + 26.0) (comp.H/2.0) {defaultCircle with R = 3; Fill = parameters.Fill};]
+
+        |Not ->  [makePolygon ($"0,20 30,0 0,-20") {defaultPolygon with Fill=parameters.Fill};
+                 makeCircle 34.0 0.0 {defaultCircle with R=4; Fill=parameters.Fill}]  
+
+        |Or ->   [makeOr parameters];
+
+        |Nor ->  [makeOr parameters;
+
+                 makeCircle 58 20 {defaultCircle with R = 3; Fill=parameters.Fill}] 
+
+        |Xor ->  [makeOr parameters;
                  makeAnyPath {X = -5.0; Y= 0.0} ($"C-5 0 20 20 -5 40") {parameters with Fill = "None"; StrokeWidth = "1.5px"};]
+
         |Xnor -> [makeOr parameters;
-                makeAnyPath {X = -5.0; Y= 0.0} ($"C-5 0 20 20 -5 40") {parameters with Fill = "None"; StrokeWidth = "1.5px"};
-               makeCircle 58 20 {defaultCircle with R = 3; Fill=parameters.Fill}]
-        | _ -> createBiColorPolygon points colour strokeColor opacity strokeWidth comp;
+                 makeAnyPath {X = -5.0; Y= 0.0} ($"C-5 0 20 20 -5 40") {parameters with Fill = "None"; StrokeWidth = "1.5px"};
+                 makeCircle 58 20 {defaultCircle with R = 3; Fill=parameters.Fill}]
+
+        | _ ->   createBiColorPolygon points colour strokeColor opacity strokeWidth comp;
 
 //--------------------------------------------------------------------------------------------//
 //--------------------------------------- SYMBOL DRAWING -------------------------------------//
@@ -442,9 +448,6 @@ let drawSymbol (symbol:Symbol) (theme:ThemeType) (symbolType: SymbolType) =
                     let c' = c - symbol.Pos
                     makeCircle (c'.X) (c'.Y) {defaultCircle with R=3.})
             text :: corners
-
-
-
  
             
     let labelcolour = outlineColor symbol.Appearance.Colour
@@ -478,9 +481,9 @@ let drawSymbol (symbol:Symbol) (theme:ThemeType) (symbolType: SymbolType) =
     (drawPorts PortType.Output comp.OutputPorts showPorts symbol)
     |> List.append (drawPorts PortType.Input comp.InputPorts showPorts symbol)
     |> List.append (drawPortsText (comp.InputPorts @ comp.OutputPorts) (portNames comp.Type) symbol)
-    |> List.append (addLegendText //TO DO: get an extra field in and/or/not gates that determine whether they're ieee/new labels. let this affect the label.
+    |> List.append (addLegendText
                         (legendOffset w h symbol) 
-                        (getComponentLegend comp.Type transform.Rotation symbolType) //move this step to inside create_component
+                        (getComponentLegend comp.Type transform.Rotation symbolType)
                         "middle" 
                         "bold" 
                         (legendFontSize comp.Type))
