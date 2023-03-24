@@ -20,5 +20,5 @@ The following features are implemented:
 * feature - After symbol adjustments, wires are updated using smartAutoRoute
 
 ## SmartRendering - Hannah Shewan
-* feature all gates in IEEE form
-* n bit inputs, up to 4
+* All gates viewed in IEEE form
+* User can input up to 4 bits for all logic gates, except NOT
