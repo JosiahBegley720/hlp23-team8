@@ -1,4 +1,4 @@
-##Changes Made 
+Changes Made 
 
 1. Smart Rendering
 
