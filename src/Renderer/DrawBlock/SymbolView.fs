@@ -99,7 +99,7 @@ let drawPortsText (portList: list<Port>) (listOfNames: list<string>) (symb: Symb
 let drawPorts (portType: PortType) (portList: Port List) (showPorts:ShowPorts) (symb: Symbol)= 
     if not (portList.Length < 1) then    
         match symb.Component.Type with 
-        | And n | Or n | Xor n | Xnor n | Nor n | Nand n | Xor n -> match (showPorts,portType) with
+        | Xor n | Xnor n | Xor n -> match (showPorts,portType) with
                                                                         |(ShowBoth,_) |(ShowInput,PortType.Input) |(ShowOutput,PortType.Output) | (ShowBothForPortMovement,_) -> [0..(portList.Length-1)] |> List.collect (fun x -> (portCircles (getPortPosToRender symb portList[x] true) showPorts ))  
                                                                         |(ShowOneTouching p, _) | (ShowOneNotTouching p, _) -> [0..(portList.Length-1)] |> List.collect (fun x -> if portList[x] = p then (portCircles (getPortPosToRender symb portList[x] true) (showPorts) ) else (portCircles (getPortPosToRender symb portList[x] true) ShowBothForPortMovement ))
                                                                         |(_,_) -> []
