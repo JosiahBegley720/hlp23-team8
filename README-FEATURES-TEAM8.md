@@ -2,12 +2,13 @@ Team 8
 # Implemented functionality
 The following features are implemented:
 
-## SmartChannel
+## SmartChannel - Harshil Shah
 * feature - Spaces 7-segment wires inside a specified channel (specified by selecting two components)
 * feature - Works for horizontal and vertical channels, including auto and manually routed wires 
 	* only routes horizontal and vertical wires in their respective channels to avoid unintended spacings
 * feature - Called by selecting "SmartChannel" in the edit menu
-* feature - Minimises overlaps where possible to improve visibility
+* feature - Minimises overlaps between similarly oriented wires where possible
+	* Works for wires created in all directions (e.g. top to bottom and bottom to top, and left to right, and right to left)
 
 ## SmartPortReorder - Josiah Begley
 * feature - All connections between components are now instantly sorted with one pass of Bi-directional sorting

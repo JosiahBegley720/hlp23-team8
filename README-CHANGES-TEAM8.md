@@ -10,3 +10,7 @@ All logic gates have an int Option as an input. This affects every file that mat
 and is processed as userdata. type of userdata.
 
 SymbolView.fs [Symbol.fs](./src/Renderer/DrawBlock/SymbolView.fs) and [DrawModelHelpers.fs](./src/Renderer/Common/DrawHelpers.fs) have the code to render the n bit input logic gates
+
+2. SmartChannel
+
+getChannel replaced with getOrientedChannel
