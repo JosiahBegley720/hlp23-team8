@@ -260,7 +260,7 @@ let rec unhugSegment model (wire: Wire) (segOP: Segment list option) segDef lim 
         
 
         if hugWires = [] && lim <> 0 then segOP
-        elif hugWires = [] && lim = 0 then None
+        elif lim = 0 then None
         else
             hugWires
             |> List.map (fun w -> w.Segments)
