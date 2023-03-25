@@ -297,7 +297,7 @@ let smartAutoroute (model: Model) (wire: Wire): Wire =
                                     elif smartSeg1StillIntersect then smartSegments2
                                     else smartSegments1
 
-    let finalSegments = match (unhugSegment model wire (Some newSegments) segments 3) with
+    let finalSegments = match (unhugSegment model wire (Some newSegments) segments 5) with
                                 |Some seg -> seg
                                 |None -> newSegments 
 
